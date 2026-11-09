@@ -1,0 +1,124 @@
+# Signposts: conditions that move scenario probabilities by likelihood ratios.
+#
+# `condition` is an expression over indicator IDs. Allowed: numbers,
+# + - * /, comparisons, and/or/not, and the functions
+#   change(x, n)      x minus its value n observations earlier
+#   pct_change(x, n)  x / x[n observations earlier] - 1
+#   abs, min, max
+# Windows count observations of that series (trading days for daily series).
+# `confirm_days` = the condition must hold on that many consecutive observations.
+#
+# Units: spreads and yields are in percent (400bp = 4.00).
+#
+# The LRs below are the PRD's illustrative defaults. They MUST be tuned by me
+# before the engine (Phase 2) uses them.
+
+- id: hy_stress
+  name: High-yield stress
+  family: credit
+  condition: "hy_oas > 4.00"
+  confirm_days: 2
+  lr: {base: 0.5, A: 0.9, B: 1.5, C: 3.0, D: 1.5}
+
+- id: hy_crisis
+  name: High-yield crisis
+  family: credit
+  condition: "hy_oas > 5.00"
+  confirm_days: 2
+  lr: {base: 0.2, A: 0.6, B: 1.5, C: 5.0, D: 1.5}
+
+- id: ccc_blowout
+  name: CCC blowout
+  family: credit
+  condition: "ccc_oas > 15.00"
+  confirm_days: 2
+  lr: {base: 0.4, A: 0.8, B: 1.3, C: 3.0, D: 1.3}
+
+- id: ig_drift
+  name: Investment-grade drift
+  family: credit
+  condition: "ig_oas > 1.10"
+  confirm_days: 2
+  lr: {base: 0.6, A: 1.0, B: 1.4, C: 2.0, D: 1.3}
+
+- id: vol_inversion
+  name: Vol inversion
+  family: volatility
+  condition: "vix_term > 1.0"
+  confirm_days: 3
+  lr: {base: 0.6, A: 1.3, B: 1.3, C: 2.0, D: 1.3}
+
+- id: bonds_stop_hedging
+  name: Bonds stop hedging
+  family: rates
+  condition: "spy_tlt_corr_60d > 0.3"
+  lr: {base: 0.9, A: 0.9, B: 0.8, C: 0.8, D: 2.5}
+
+- id: oil_shock
+  name: Oil shock
+  family: oil
+  condition: "brent > 110"
+  lr: {base: 0.8, A: 0.8, B: 0.9, C: 1.0, D: 3.0}
+
+- id: hike_priced
+  name: Hike priced
+  family: rates
+  condition: "fed_hike_prob_next > 0.70"
+  lr: {base: 0.9, A: 1.2, B: 0.8, C: 1.1, D: 1.8}
+  notes: Inactive until the Atlanta Fed fetcher lands (Phase 4)
+
+- id: real_yield_squeeze
+  name: Real yield squeeze
+  family: rates
+  condition: "real_10y > 2.5"
+  lr: {base: 0.8, A: 1.6, B: 1.2, C: 1.4, D: 1.3}
+
+- id: long_end_break
+  name: Long-end break
+  family: rates
+  condition: "ust_10y > 5.0"
+  confirm_days: 3
+  lr: {base: 0.7, A: 1.4, B: 0.9, C: 1.3, D: 2.0}
+
+- id: bear_steepener
+  name: Bear steepener
+  family: rates
+  condition: "change(curve_10y2y, 60) > 0.40 and change(ust_10y, 60) > 0"
+  lr: {base: 0.8, A: 1.2, B: 0.9, C: 1.2, D: 2.0}
+
+- id: term_premium_jump
+  name: Term premium jump
+  family: rates
+  condition: "change(term_premium_kw, 63) > 0.50"
+  lr: {base: 0.7, A: 1.3, B: 1.0, C: 1.4, D: 2.2}
+
+- id: capex_cut
+  name: Capex cut
+  family: ai_fundamentals
+  condition: "hyperscaler_capex_cuts >= 2"
+  lr: {base: 0.5, A: 1.5, B: 3.0, C: 1.8, D: 1.0}
+  notes: Manual entry after each earnings season
+
+- id: chips_lead_down
+  name: Chips lead down
+  family: ai_fundamentals
+  condition: "pct_change(smh_spy_ratio, 60) < -0.15"
+  lr: {base: 0.6, A: 2.0, B: 1.6, C: 1.6, D: 1.0}
+
+- id: laggards_decouple
+  name: Laggards decouple
+  family: flows
+  condition: "pct_change(inda_qqq_ratio, 60) > 0.10 and hy_oas < 4.0"
+  lr: {base: 0.9, A: 2.0, B: 1.0, C: 0.5, D: 0.8}
+
+- id: everything_falls
+  name: Everything falls
+  family: flows
+  condition: "pct_change(inda, 20) < -0.08 and pct_change(hsi, 20) < -0.08 and pct_change(qqq, 20) < -0.08"
+  lr: {base: 0.4, A: 0.6, B: 1.3, C: 2.5, D: 1.5}
+
+- id: liquidity_drain
+  name: Liquidity drain
+  family: liquidity
+  condition: "pct_change(net_fed_liquidity, 13) < -0.05"
+  lr: {base: 0.7, A: 1.1, B: 1.2, C: 1.6, D: 1.3}

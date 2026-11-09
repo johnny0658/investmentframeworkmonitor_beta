@@ -1,0 +1,168 @@
+name: framework-monitor
+
+# Main run 22:30 UTC Mon-Fri (6:30 Singapore next day), catch-up 13:00 UTC
+# Tue-Sat for series published the next morning (ICE BofA spreads on FRED).
+# Both skip NYSE holidays. Manual runs: Actions -> framework-monitor -> Run workflow.
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"
+    - cron: "0 13 * * 2-6"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "main | catchup | backfill (full history, FR-7)"
+        type: choice
+        options: [main, catchup, backfill]
+        default: main
+      only:
+        description: "Optional space-separated indicator ids"
+        required: false
+        default: ""
+      allow_new_private_store:
+        description: "Start a new private store if none can be restored (first run only!)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # commit public Parquet + health report
+  actions: read     # find the previous run's private-store artifact
+
+concurrency:
+  group: framework-monitor
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+      PRIVATE_STORE_KEY: ${{ secrets.PRIVATE_STORE_KEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            mode="${{ inputs.mode }}"
+          elif [ "${{ github.event.schedule }}" = "0 13 * * 2-6" ]; then
+            mode=catchup
+          else
+            mode=main
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Run mode: **$mode**" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[yfinance]"
+
+      - name: Skip if not an NYSE session
+        id: gate
+        if: github.event_name == 'schedule'
+        run: |
+          set +e
+          python -m framework_monitor.cli should-run --mode "${{ steps.mode.outputs.mode }}"
+          rc=$?
+          if [ $rc -eq 78 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          exit $rc
+
+      - name: Require PRIVATE_STORE_KEY
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          if [ -z "$PRIVATE_STORE_KEY" ]; then
+            echo "::error::Secret PRIVATE_STORE_KEY is missing. See README > Setup."
+            exit 1
+          fi
+
+      - name: Restore private store (encrypted artifact)
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=private-store&per_page=100" \
+                 --jq '[.artifacts[] | select(.expired | not)] | sort_by(.created_at) | last | .id // empty')
+          if [ -z "$id" ]; then
+            if [ "${{ inputs.allow_new_private_store }}" = "true" ] || [ ! -f data/parquet/public/runs.parquet ]; then
+              echo "::warning::No private-store artifact found; starting a new private store."
+              exit 0
+            fi
+            echo "::error::No private-store artifact found but earlier runs exist. Refusing to continue, because that would silently drop restricted history. Re-run with allow_new_private_store=true only if the history is truly lost."
+            exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > private-store.zip
+          unzip -o -q private-store.zip
+          python -m framework_monitor.cli private-store unpack --file private-store.enc
+
+      - name: Rebuild DuckDB from Parquet
+        if: steps.gate.outputs.skip != 'true'
+        run: python -m framework_monitor.cli rebuild
+
+      - name: Fetch
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          mode="${{ steps.mode.outputs.mode }}"
+          args=""
+          if [ -n "$ONLY" ]; then
+            case "$ONLY" in *[!a-z0-9_\ ]*) echo "::error::invalid indicator ids"; exit 1;; esac
+            args="--only $ONLY"
+          fi
+          if [ "$mode" = "backfill" ]; then
+            python -m framework_monitor.cli backfill $args
+          else
+            python -m framework_monitor.cli fetch --mode "$mode" $args
+          fi
+
+      - name: Verify FRED series (backfill runs)
+        if: steps.gate.outputs.skip != 'true' && steps.mode.outputs.mode == 'backfill'
+        run: python -m framework_monitor.cli verify-series
+
+      - name: Quality checks + health report
+        if: steps.gate.outputs.skip != 'true'
+        run: python -m framework_monitor.cli check
+
+      - name: Snapshot Parquet
+        if: steps.gate.outputs.skip != 'true'
+        run: python -m framework_monitor.cli snapshot
+
+      - name: Pack private store
+        if: steps.gate.outputs.skip != 'true'
+        run: python -m framework_monitor.cli private-store pack --file private-store.enc
+
+      - name: Upload private store
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-store
+          path: private-store.enc
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Licensing guard
+        if: steps.gate.outputs.skip != 'true'
+        run: python -m framework_monitor.cli guard
+
+      - name: Commit public data
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/parquet/public data/health
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+          git commit -q -m "data: ${{ steps.mode.outputs.mode }} run $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do
+            git pull --rebase -q origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((2 ** i))
+          done
+          echo "::error::push failed after 4 attempts"
+          exit 1

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "framework-monitor"
+version = "0.1.0"
+description = "Daily monitor that turns a five-layer investment framework into scored indicators, scenario probabilities and alerts."
+requires-python = ">=3.12"
+dependencies = [
+  "pandas>=2.2",
+  "duckdb>=1.1",
+  "pyarrow>=16",
+  "httpx>=0.27",
+  "pydantic>=2.7",
+  "pyyaml>=6",
+  "pandas_market_calendars>=4.4",
+  "cryptography>=42",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+yfinance = ["yfinance>=0.2"]
+
+[project.scripts]
+framework-monitor = "framework_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["framework_monitor*"]
+
+[tool.setuptools.package-data]
+framework_monitor = ["config/*.yaml", "manual/*.csv", "tests/fixtures/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["framework_monitor/tests"]

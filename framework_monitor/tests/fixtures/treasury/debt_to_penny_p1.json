@@ -1,0 +1,48 @@
+{
+ "data": [
+  {
+   "record_date": "2026-10-01",
+   "tot_pub_debt_out_amt": "40260641972390.03"
+  },
+  {
+   "record_date": "2026-10-02",
+   "tot_pub_debt_out_amt": "40242446619209.33"
+  },
+  {
+   "record_date": "2026-10-05",
+   "tot_pub_debt_out_amt": "40249104431078.48"
+  },
+  {
+   "record_date": "2026-10-06",
+   "tot_pub_debt_out_amt": "40273024579219.17"
+  },
+  {
+   "record_date": "2026-10-07",
+   "tot_pub_debt_out_amt": "40284036147367.19"
+  }
+ ],
+ "meta": {
+  "count": 5,
+  "labels": {
+   "record_date": "Record Date",
+   "tot_pub_debt_out_amt": "Total Public Debt Outstanding"
+  },
+  "dataTypes": {
+   "record_date": "DATE",
+   "tot_pub_debt_out_amt": "CURRENCY"
+  },
+  "dataFormats": {
+   "record_date": "YYYY-MM-DD",
+   "tot_pub_debt_out_amt": "$10.20"
+  },
+  "total-count": 10,
+  "total-pages": 2
+ },
+ "links": {
+  "self": "&page%5Bnumber%5D=1&page%5Bsize%5D=5",
+  "first": "&page%5Bnumber%5D=1&page%5Bsize%5D=5",
+  "prev": null,
+  "next": "&page%5Bnumber%5D=2&page%5Bsize%5D=5",
+  "last": "&page%5Bnumber%5D=5&page%5Bsize%5D=5"
+ }
+}

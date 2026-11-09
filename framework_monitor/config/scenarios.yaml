@@ -1,0 +1,33 @@
+# Confirmed scenario priors. The engine (Phase 2) proposes updates; I confirm
+# by editing this file, which then becomes the new prior.
+#
+# The defaults are the PRD's placeholders, NOT forecasts. Overwrite them on
+# first run.
+#
+# `shocks` (Phase 5 portfolio module) are simple % moves per asset under each
+# scenario, used for payoff estimates.
+
+confirmed_on: 2026-11-08
+shrinkage_to_prior: 0.2   # final = 0.8 x posterior + 0.2 x prior
+
+scenarios:
+  - id: base
+    name: Base
+    description: AI spending continues, growth holds, no credit stress
+    prior: 0.45
+  - id: A
+    name: Orderly AI de-rating
+    description: Valuations compress, economy and credit hold
+    prior: 0.25
+  - id: B
+    name: AI capex bust
+    description: Hyperscalers cut spending, US slows
+    prior: 0.12
+  - id: C
+    name: AI credit event
+    description: Data-centre debt reprices, spreads blow out
+    prior: 0.08
+  - id: D
+    name: Stagflation
+    description: AI scare plus oil spike plus Fed hikes
+    prior: 0.10

@@ -1,0 +1,19 @@
+{
+ "count": 6,
+ "offset": 4,
+ "limit": 4,
+ "observations": [
+  {
+   "realtime_start": "2026-10-28",
+   "realtime_end": "9999-12-31",
+   "date": "2026-09-01",
+   "value": "22200.7"
+  },
+  {
+   "realtime_start": "2026-11-25",
+   "realtime_end": "9999-12-31",
+   "date": "2026-09-01",
+   "value": "22205.0"
+  }
+ ]
+}

@@ -1,0 +1,212 @@
+"""Command-line entry point: ``python -m framework_monitor.cli <command>``.
+
+Phase 1 commands:
+
+  validate        validate every YAML config file (pydantic + cross-references)
+  should-run      exit 0 if this run's US session was an NYSE trading day, 78 otherwise
+  rebuild         recreate data/monitor.duckdb from Parquet snapshots
+  fetch           incremental fetch (last stored date minus 90 days)
+  backfill        load full available history (FR-7)
+  check           quality checks + data/health/health.{json,md}
+  snapshot        write Parquet snapshots (public + private)
+  guard           licensing guard; exit 1 on any restricted raw value in public paths
+  verify-series   check FRED IDs, units, history length -> data/health/series-verification.md
+  private-store   pack | unpack the encrypted private store
+  run-all         rebuild -> fetch -> check -> snapshot -> guard
+
+compute, publish and alert arrive in Phases 2 and 3.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import logging
+import os
+import sys
+from pathlib import Path
+
+from framework_monitor import licensing, quality, trading_calendar, verify
+from framework_monitor.config_loader import ConfigError, load_config
+from framework_monitor.pipeline import run_fetch
+from framework_monitor.settings import Paths
+from framework_monitor.store import private_store, snapshots
+from framework_monitor.store.db import Store
+
+SKIP_EXIT = 78  # "neutral" exit code the workflow treats as "skip this run"
+
+
+def _summary(text: str) -> None:
+    """Print, and append to the GitHub Actions job summary when available."""
+    print(text)
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        with open(path, "a") as fh:
+            fh.write(text + "\n\n")
+
+
+def _open_store(paths: Paths, fresh: bool) -> Store:
+    if fresh or not paths.db_path.exists():
+        store, counts = snapshots.rebuild(paths)
+        print(f"rebuilt {paths.db_path} from parquet: {counts or 'no snapshots yet'}")
+        return store
+    return Store(paths.db_path)
+
+
+def cmd_validate(args, paths) -> int:
+    cfg = load_config(args.config_dir)
+    enabled = [i for i in cfg.indicators if i.enabled]
+    print(f"config OK: {len(cfg.indicators)} indicators ({len(enabled)} enabled), "
+          f"{len(cfg.rows.rows)} rows, {len(cfg.signposts)} signposts, {len(cfg.scenarios.scenarios)} scenarios, "
+          f"{len(cfg.judgements)} judgements")
+    return 0
+
+
+def cmd_should_run(args, paths) -> int:
+    now = dt.datetime.now(dt.UTC)
+    ok, why = trading_calendar.should_run(args.mode, now)
+    print(why)
+    return 0 if ok else SKIP_EXIT
+
+
+def cmd_rebuild(args, paths) -> int:
+    _open_store(paths, fresh=True).close()
+    return 0
+
+
+def _do_fetch(args, paths, backfill: bool) -> int:
+    cfg = load_config(args.config_dir)
+    store = _open_store(paths, fresh=args.fresh)
+    try:
+        s = run_fetch(store, cfg, args.mode, backfill=backfill, only=args.only, paths=paths)
+    finally:
+        store.close()
+    _summary("```\n" + s.text() + "\n```")
+    # Partial failure is normal (FR-4) and surfaces on the health report; only
+    # fail the step if nothing at all could be fetched.
+    return 1 if s.failed and not s.ok else 0
+
+
+def cmd_fetch(args, paths) -> int:
+    return _do_fetch(args, paths, backfill=False)
+
+
+def cmd_backfill(args, paths) -> int:
+    return _do_fetch(args, paths, backfill=True)
+
+
+def cmd_check(args, paths) -> int:
+    cfg = load_config(args.config_dir)
+    store = _open_store(paths, fresh=False)
+    try:
+        today = dt.date.today()
+        report = quality.health_report(store, cfg, today)
+        quality.write_health(report, paths, today)
+        md = (paths.health_dir / "health.md").read_text()
+    finally:
+        store.close()
+    _summary(md.split("| Indicator |")[0].strip())
+    return 0
+
+
+def cmd_snapshot(args, paths) -> int:
+    cfg = load_config(args.config_dir)
+    store = _open_store(paths, fresh=False)
+    try:
+        written = snapshots.export(store, cfg, paths)
+    finally:
+        store.close()
+    print(f"snapshots written: {written}")
+    return 0
+
+
+def cmd_guard(args, paths) -> int:
+    cfg = load_config(args.config_dir)
+    v = licensing.scan_paths(paths.public_paths, cfg)
+    v += licensing.scan_git_tracked(paths.root)
+    v += licensing.scan_manual_dir(paths.public_manual_dir, cfg)
+    if v:
+        _summary("LICENSING GUARD FAILED:\n" + "\n".join(f"- {x}" for x in v))
+        return 1
+    print(f"licensing guard OK ({len(cfg.restricted_ids)} restricted indicators; scanned {[str(p) for p in paths.public_paths]})")
+    return 0
+
+
+def cmd_verify_series(args, paths) -> int:
+    cfg = load_config(args.config_dir)
+    today = dt.date.today()
+    checks = verify.verify_fred(cfg, today=today)
+    text = verify.render(checks, today)
+    paths.health_dir.mkdir(parents=True, exist_ok=True)
+    (paths.health_dir / "series-verification.md").write_text(text)
+    bad = [c for c in checks if not c.ok]
+    _summary(f"verify-series: {len(checks) - len(bad)}/{len(checks)} OK" +
+             ("".join(f"\n- `{c.indicator_id}` ({c.series}): {'; '.join(c.issues)}" for c in bad)))
+    return 0
+
+
+def cmd_private_store(args, paths) -> int:
+    f = Path(args.file)
+    if args.action == "pack":
+        n = private_store.pack(paths.private_dir, f)
+        print(f"packed {n} files from {paths.private_dir} into {f}")
+    else:
+        n = private_store.unpack(f, paths.private_dir)
+        print(f"restored {n} files into {paths.private_dir}")
+    return 0
+
+
+def cmd_run_all(args, paths) -> int:
+    args.fresh = True
+    for step in (cmd_fetch, cmd_check, cmd_snapshot, cmd_guard):
+        rc = step(args, paths)
+        if rc:
+            return rc
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="framework-monitor", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--config-dir", type=Path, default=None)
+    p.add_argument("--root", type=Path, default=None, help="repo root (default: package parent)")
+    p.add_argument("-v", "--verbose", action="store_true")
+    sub = p.add_subparsers(dest="command", required=True)
+
+    def add(name, fn, help_):
+        sp = sub.add_parser(name, help=help_)
+        sp.set_defaults(fn=fn)
+        return sp
+
+    add("validate", cmd_validate, "validate config files")
+    sp = add("should-run", cmd_should_run, "exit 0 on NYSE trading days, 78 otherwise")
+    sp.add_argument("--mode", choices=["main", "catchup"], default="main")
+    add("rebuild", cmd_rebuild, "rebuild DuckDB from Parquet")
+    for name, fn, h in (("fetch", cmd_fetch, "incremental fetch"), ("backfill", cmd_backfill, "full-history fetch"),
+                        ("run-all", cmd_run_all, "rebuild, fetch, check, snapshot, guard")):
+        sp = add(name, fn, h)
+        sp.add_argument("--mode", choices=["main", "catchup"], default="main")
+        sp.add_argument("--only", nargs="+", help="limit to these indicator ids")
+        sp.add_argument("--fresh", action="store_true", help="rebuild DuckDB from Parquet first")
+    add("check", cmd_check, "quality checks + health report")
+    add("snapshot", cmd_snapshot, "write Parquet snapshots")
+    add("guard", cmd_guard, "licensing guard")
+    add("verify-series", cmd_verify_series, "verify FRED IDs, units, history")
+    sp = add("private-store", cmd_private_store, "pack/unpack the encrypted private store")
+    sp.add_argument("action", choices=["pack", "unpack"])
+    sp.add_argument("--file", default="private-store.enc")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    paths = Paths(root=args.root.resolve()) if args.root else Paths()
+    try:
+        return args.fn(args, paths)
+    except (ConfigError, private_store.PrivateStoreError, licensing.LicenceViolation) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

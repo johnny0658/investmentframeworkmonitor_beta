@@ -1,0 +1,10 @@
+# My row overrides. Each needs a score (-2..+2), confidence (0..1), reason and
+# expiry date. An override past its expiry is dropped and flagged (Phase 2).
+#
+# Example:
+# - row: global_liquidity_inflation
+#   score: -1
+#   confidence: 0.6
+#   reason: "Oil back above $100 if Iran talks fail; inflation trend turning up"
+#   expires: 2026-12-31
+[]

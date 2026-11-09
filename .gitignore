@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+
+# DuckDB is rebuilt from Parquet on every run (FR-9)
+data/monitor.duckdb
+data/monitor.duckdb.wal
+
+# Restricted raw data never enters the public repo (licensing rules).
+# It travels between runs as an encrypted GitHub Actions artifact.
+data/private/
+private-store.enc
+private-store/

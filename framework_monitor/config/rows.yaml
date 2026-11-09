@@ -1,0 +1,89 @@
+# Framework layers and rows. Every indicator belongs to exactly one row and
+# every row to one layer. Row scores (Phase 2) are the weighted mean of the
+# row's indicator signals, using the weights in indicators.yaml.
+#
+# NOTE: the PRD's embedded "framework model" (5 layers, 21 rows) was not in
+# the markdown export. These 18 rows are reconstructed from the PRD tables;
+# add the missing three here once confirmed.
+
+layers:
+  - {id: 1, name: Regime}
+  - {id: 2, name: Structural themes}
+  - {id: 3, name: Pricing (what is priced in)}
+  - {id: 4, name: Catalysts and signposts}
+  - {id: 5, name: Expression and risk}
+
+rows:
+  # Layer 1: Regime
+  - id: us_liquidity
+    name: US liquidity
+    layer: 1
+    question: Is liquidity a tailwind or a headwind for risk appetite over 3 to 6 months?
+  - id: rates_debt
+    name: Rates and debt
+    layer: 1
+    question: Are yields moving on growth, on inflation, or on supply and term premium?
+  - id: global_liquidity_inflation
+    name: Global liquidity and inflation
+    layer: 1
+    question: Which regime box are we in, and which box are we moving to?
+
+  # Layer 2: Structural themes
+  - id: ai_stack
+    name: AI stack
+    layer: 2
+  - id: ai_vs_non_ai
+    name: AI vs non-AI
+    layer: 2
+    question: How much hidden AI exposure does each holding carry?
+  - id: ai_bottlenecks_credit
+    name: AI bottlenecks and credit
+    layer: 2
+    question: Where is the binding constraint now, and is it priced in? Is credit stress idiosyncratic or spreading?
+  - id: tech_competitiveness
+    name: Tech competitiveness
+    layer: 2
+    question: Will the US keep capturing most AI profits, and does the price already assume it?
+  - id: value_capture_tax
+    name: Value capture and tax
+    layer: 2
+    question: Is a market's shareholder treatment improving or worsening?
+  - id: future_tech
+    name: Future tech
+    layer: 2
+    question: Which frontier has real adoption rather than hype?
+
+  # Layer 3: Pricing
+  - id: valuations
+    name: Valuations
+    layer: 3
+  - id: options_pricing
+    name: Options pricing
+    layer: 3
+  - id: positioning
+    name: Positioning
+    layer: 3
+  - id: capital_flows
+    name: Capital flows
+    layer: 3
+    question: Are flows leading price, or chasing it?
+
+  # Layer 4: Catalysts and signposts
+  - id: calendar
+    name: Calendar
+    layer: 4
+  - id: policy
+    name: Policy
+    layer: 4
+  - id: crash_signals
+    name: Crash signals
+    layer: 4
+
+  # Layer 5: Expression and risk
+  - id: portfolio
+    name: Portfolio
+    layer: 5
+  - id: defensives
+    name: Defensives / lost decade
+    layer: 5
+    question: Which defensive works in the regime I expect?

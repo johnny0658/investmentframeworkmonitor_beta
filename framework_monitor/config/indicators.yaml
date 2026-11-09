@@ -1,0 +1,264 @@
+# Indicator catalogue (FR-2): the only place a series is defined.
+#
+# Fields
+#   id               unique snake_case ID used everywhere else
+#   source           fetcher module (fetchers/<source>.py) or `derived`
+#   series           source series code / ticker
+#   params           source-specific options (Treasury endpoint, price providers, scale)
+#   formula          derived only: expression over other indicator IDs (engine, Phase 2)
+#   units            canonical units (see schemas.Units); checked by `verify-series`
+#   transform        level | yoy | ann_3m | diff_4w | diff_13w_pct | pct_rank
+#   direction        +1 higher is good for risk assets, -1 bad, 0 monitor only
+#   weight           weight inside its row; 0 = monitored / input only
+#   stale_after_days flag as stale once the latest observation is older than this
+#   licence          public | restricted (restricted raw values never reach the public repo)
+#   enabled          false = declared but its fetcher lands in a later phase
+#   catchup          also fetched by the 13:00 UTC catch-up run
+#
+# Price indicators store a total-return index (adjusted close on first fetch,
+# then chained by daily returns). See fetchers/prices.py for why.
+#   proxy            true when the indicator stands in for a missing paid source
+#
+# Stale windows count from the observation date, so monthly series allow for
+# their publication lag (e.g. CPI for September is dated 1 Sept, released mid-Oct).
+#
+# Direction and weights are first-pass defaults for me to tune; they are not
+# used for scoring until Phase 2.
+
+# ---------------------------------------------------------------- defaults
+_defaults:
+  - &daily {frequency: daily, stale_after_days: 5}
+  - &weekly {frequency: weekly, stale_after_days: 12}
+  - &monthly {frequency: monthly, stale_after_days: 75}
+  - &quarterly {frequency: quarterly, stale_after_days: 140}
+  - &price {source: prices, units: index, frequency: daily, stale_after_days: 5, licence: restricted, transform: level, direction: 0, weight: 0}
+
+indicators:
+# ============================================================ LAYER 1: Regime
+# ---------------------------------------------------------------- US liquidity
+- {id: m2, name: M2 money stock, source: alfred, series: M2SL, units: usd_billions, <<: *monthly, transform: ann_3m, direction: 1, row: us_liquidity, layer: 1, weight: 0.10, licence: public, notes: "Revised after release; vintages stored via ALFRED. Growth, not level, matters (Myth 1)."}
+- {id: fed_assets, name: Fed total assets, source: fred, series: WALCL, units: usd_millions, <<: *weekly, direction: 0, row: us_liquidity, layer: 1, weight: 0, licence: public, notes: Input to net_fed_liquidity}
+- {id: tga, name: Treasury General Account (Fed H.4.1), source: fred, series: WTREGEN, units: usd_millions, <<: *weekly, direction: 0, row: us_liquidity, layer: 1, weight: 0, licence: public, notes: Input to net_fed_liquidity}
+- {id: on_rrp, name: Overnight reverse repo, source: fred, series: RRPONTSYD, units: usd_billions, <<: *daily, direction: 0, row: us_liquidity, layer: 1, weight: 0, licence: public, notes: "Billions, unlike WALCL/WTREGEN (millions)"}
+- id: net_fed_liquidity
+  name: Net Fed liquidity
+  source: derived
+  formula: fed_assets - tga - on_rrp * 1000     # all USD millions
+  units: usd_millions
+  <<: *weekly
+  transform: diff_13w_pct
+  direction: 1
+  row: us_liquidity
+  layer: 1
+  weight: 0.35
+  licence: public
+- {id: bank_reserves, name: Bank reserves, source: fred, series: WRESBAL, units: usd_millions, <<: *weekly, transform: yoy, direction: 1, row: us_liquidity, layer: 1, weight: 0.10, licence: public}
+- {id: bank_credit, name: "Bank credit, all commercial banks", source: fred, series: TOTBKCR, units: usd_billions, <<: *weekly, transform: yoy, direction: 1, row: us_liquidity, layer: 1, weight: 0.05, licence: public}
+- {id: business_loans, name: "C&I loans, all commercial banks", source: fred, series: BUSLOANS, units: usd_billions, <<: *monthly, transform: ann_3m, direction: 1, row: us_liquidity, layer: 1, weight: 0.05, licence: public, notes: "BUSLOANS is monthly on FRED (PRD said weekly); TOTCI is the weekly H.8 equivalent"}
+- id: credit_impulse
+  name: Credit impulse (change in 13-week bank credit growth)
+  source: derived
+  formula: impulse(bank_credit, 13)
+  units: percent
+  <<: *weekly
+  direction: 1
+  row: us_liquidity
+  layer: 1
+  weight: 0.10
+  licence: public
+  proxy: true
+- {id: nfci, name: Chicago Fed NFCI, source: fred, series: NFCI, units: index, <<: *weekly, direction: -1, row: us_liquidity, layer: 1, weight: 0.15, licence: public, notes: Positive = tighter than average}
+- {id: anfci, name: Chicago Fed adjusted NFCI, source: fred, series: ANFCI, units: index, <<: *weekly, direction: -1, row: us_liquidity, layer: 1, weight: 0.05, licence: public}
+- {id: stlfsi, name: St. Louis Fed Financial Stress Index, source: fred, series: STLFSI4, units: index, <<: *weekly, direction: -1, row: us_liquidity, layer: 1, weight: 0.05, licence: public}
+
+# ---------------------------------------------------------------- Rates and debt
+- {id: bill_3m, name: 3-month Treasury bill, source: fred, series: DGS3MO, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: sofr, name: SOFR, source: fred, series: SOFR, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: ust_2y, name: 2-year Treasury yield, source: fred, series: DGS2, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: ust_10y, name: 10-year Treasury yield, source: fred, series: DGS10, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.10, licence: public}
+- {id: ust_30y, name: 30-year Treasury yield, source: fred, series: DGS30, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: curve_10y2y, name: 10y minus 2y, source: fred, series: T10Y2Y, units: percent, <<: *daily, direction: 0, row: rates_debt, layer: 1, weight: 0, licence: public, notes: "Direction ambiguous (bull vs bear steepening); used by signposts"}
+- {id: curve_10y3m, name: 10y minus 3m, source: fred, series: T10Y3M, units: percent, <<: *daily, direction: 0, row: rates_debt, layer: 1, weight: 0, licence: public}
+- {id: real_5y, name: 5-year TIPS real yield, source: fred, series: DFII5, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: real_10y, name: 10-year TIPS real yield, source: fred, series: DFII10, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.15, licence: public}
+- {id: breakeven_10y, name: 10-year breakeven inflation, source: fred, series: T10YIE, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: real_30y, name: 30-year TIPS real yield, source: fred, series: DFII30, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: fwd_infl_5y5y, name: 5-year 5-year forward breakeven, source: fred, series: T5YIFR, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.10, licence: public}
+- {id: term_premium_kw, name: 10y term premium (Kim-Wright), source: fred, series: THREEFYTP10, units: percent, <<: *daily, stale_after_days: 14, direction: -1, row: rates_debt, layer: 1, weight: 0.10, licence: public, notes: "Published with about a week's lag. NY Fed ACM model lands in Phase 4."}
+- {id: fed_funds, name: Effective fed funds rate, source: fred, series: DFF, units: percent, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public}
+- {id: fed_deficit, name: Federal surplus or deficit (monthly), source: fred, series: MTSDS133FMS, units: usd_millions, <<: *monthly, direction: 1, row: rates_debt, layer: 1, weight: 0, licence: public, notes: "Monthly Treasury Statement via FRED. Monitor only until a 12-month-sum transform exists."}
+- id: public_debt
+  name: Total public debt outstanding (debt to the penny)
+  source: treasury_fiscal
+  series: debt_to_penny
+  params: {endpoint: v2/accounting/od/debt_to_penny, date_field: record_date, value_field: tot_pub_debt_out_amt, scale: 1.0e-6}
+  units: usd_millions
+  <<: *daily
+  transform: yoy
+  direction: -1
+  row: rates_debt
+  layer: 1
+  weight: 0.05
+  licence: public
+- id: tga_daily
+  name: TGA closing balance (Daily Treasury Statement)
+  source: treasury_fiscal
+  series: dts_operating_cash_balance
+  params:
+    endpoint: v1/accounting/dts/operating_cash_balance
+    date_field: record_date
+    value_field: open_today_bal
+    filters: ["account_type:eq:Treasury General Account (TGA) Closing Balance"]
+  units: usd_millions
+  <<: *daily
+  direction: 0
+  row: rates_debt
+  layer: 1
+  weight: 0
+  licence: public
+  notes: "Series under this account name starts 2022-04-18; DTS reports the closing balance in the open_today_bal field. WTREGEN carries the longer history."
+- id: auction_btc_10y
+  name: 10-year note auction bid-to-cover
+  source: treasury_fiscal
+  series: auctions_10y
+  params:
+    endpoint: v1/accounting/od/auctions_query
+    date_field: auction_date
+    value_field: bid_to_cover_ratio
+    filters: ["original_security_term:eq:10-Year", "security_type:eq:Note", "inflation_index_security:eq:No"]
+  units: ratio
+  frequency: per_auction
+  stale_after_days: 75
+  direction: 1
+  row: rates_debt
+  layer: 1
+  weight: 0.05
+  licence: public
+  notes: Includes reopenings
+- id: auction_btc_30y
+  name: 30-year bond auction bid-to-cover
+  source: treasury_fiscal
+  series: auctions_30y
+  params:
+    endpoint: v1/accounting/od/auctions_query
+    date_field: auction_date
+    value_field: bid_to_cover_ratio
+    filters: ["original_security_term:eq:30-Year", "security_type:eq:Bond", "inflation_index_security:eq:No"]
+  units: ratio
+  frequency: per_auction
+  stale_after_days: 75
+  direction: 1
+  row: rates_debt
+  layer: 1
+  weight: 0.05
+  licence: public
+  notes: Includes reopenings; TIPS excluded
+- {id: fed_hike_prob_next, name: Next-meeting hike probability (Atlanta Fed tracker), source: atlanta_fed, series: market_probability_tracker, units: probability, <<: *daily, direction: -1, row: rates_debt, layer: 1, weight: 0.05, licence: public, enabled: false, notes: "Phase 4. CME FedWatch has no free API; do not scrape."}
+
+# ---------------------------------------------------------------- Global liquidity and inflation
+- {id: cpi, name: CPI all items, source: alfred, series: CPIAUCSL, units: index, <<: *monthly, transform: yoy, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.10, licence: public}
+- {id: core_cpi, name: Core CPI, source: alfred, series: CPILFESL, units: index, <<: *monthly, transform: ann_3m, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.15, licence: public}
+- {id: core_pce, name: Core PCE price index, source: alfred, series: PCEPILFE, units: index, <<: *monthly, transform: ann_3m, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.15, licence: public, notes: Also feeds the regime classifier (FR-13)}
+- {id: wei, name: NY Fed Weekly Economic Index, source: fred, series: WEI, units: index, <<: *weekly, direction: 1, row: global_liquidity_inflation, layer: 1, weight: 0.15, licence: public}
+- {id: initial_claims, name: Initial jobless claims, source: fred, series: ICSA, units: count, <<: *weekly, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.10, licence: public}
+- {id: payrolls, name: Nonfarm payrolls, source: alfred, series: PAYEMS, units: thousands_persons, <<: *monthly, transform: ann_3m, direction: 1, row: global_liquidity_inflation, layer: 1, weight: 0.10, licence: public}
+- {id: unrate, name: Unemployment rate, source: fred, series: UNRATE, units: percent, <<: *monthly, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.05, licence: public}
+- {id: ecb_assets, name: ECB total assets, source: fred, series: ECBASSETSW, units: eur_millions, <<: *weekly, transform: yoy, direction: 1, row: global_liquidity_inflation, layer: 1, weight: 0.05, licence: public}
+- {id: boj_assets, name: BoJ total assets, source: fred, series: JPNASSETS, units: jpy_100m, <<: *monthly, transform: yoy, direction: 1, row: global_liquidity_inflation, layer: 1, weight: 0.05, licence: public}
+- {id: usd_broad, name: Broad US dollar index, source: fred, series: DTWEXBGS, units: index, <<: *daily, stale_after_days: 10, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.05, licence: public, notes: Published weekly with daily observations}
+- {id: brent, name: Brent crude, source: fred, series: DCOILBRENTEU, units: usd_per_barrel, <<: *daily, stale_after_days: 10, direction: -1, row: global_liquidity_inflation, layer: 1, weight: 0.05, licence: public, notes: "EIA via FRED; posted weekly"}
+- {id: wti, name: WTI crude, source: fred, series: DCOILWTICO, units: usd_per_barrel, <<: *daily, stale_after_days: 10, direction: 0, row: global_liquidity_inflation, layer: 1, weight: 0, licence: public}
+- {id: gdpnow, name: Atlanta Fed GDPNow, source: atlanta_fed, series: gdpnow, units: percent, frequency: irregular, stale_after_days: 21, direction: 1, row: global_liquidity_inflation, layer: 1, weight: 0.10, licence: public, enabled: false, notes: Phase 4}
+- {id: oecd_cli_g20, name: OECD composite leading indicator (G20), source: manual, series: oecd_cli_g20, units: index, <<: *monthly, direction: 1, row: global_liquidity_inflation, layer: 1, weight: 0.05, licence: public, enabled: false, notes: "Phase 4: OECD Data API fetcher"}
+
+# ============================================================ LAYER 2: Structural themes
+# ---------------------------------------------------------------- AI stack
+- {id: smh, name: VanEck Semiconductor ETF, series: SMH, row: ai_stack, layer: 2, <<: *price}
+- {id: soxx, name: iShares Semiconductor ETF, series: SOXX, row: ai_stack, layer: 2, <<: *price}
+- {id: nvda, name: NVIDIA, series: NVDA, row: ai_stack, layer: 2, <<: *price}
+- {id: vrt, name: Vertiv, series: VRT, row: ai_stack, layer: 2, <<: *price}
+- {id: ceg, name: Constellation Energy, series: CEG, row: ai_stack, layer: 2, <<: *price}
+- {id: grid, name: First Trust Smart Grid ETF, series: GRID, row: ai_stack, layer: 2, <<: *price}
+- {id: igv, name: iShares Software ETF, series: IGV, row: ai_stack, layer: 2, <<: *price}
+- {id: qqq, name: Invesco QQQ, series: QQQ, row: ai_stack, layer: 2, <<: *price}
+- {id: spy, name: SPDR S&P 500, series: SPY, row: ai_stack, layer: 2, <<: *price}
+- {id: rsp, name: Invesco S&P 500 Equal Weight, series: RSP, row: ai_stack, layer: 2, <<: *price}
+- {id: smh_spy_ratio, name: SMH / SPY relative strength, source: derived, formula: smh / spy, units: ratio, <<: *daily, transform: pct_rank, direction: 1, row: ai_stack, layer: 2, weight: 0.40, licence: public, notes: Ratio of restricted prices; publishable as a derived ratio}
+- {id: qqq_rsp_ratio, name: QQQ / RSP (concentration), source: derived, formula: qqq / rsp, units: ratio, <<: *daily, transform: pct_rank, direction: 1, row: ai_stack, layer: 2, weight: 0.20, licence: public}
+- {id: igv_smh_ratio, name: Software vs semis, source: derived, formula: igv / smh, units: ratio, <<: *daily, transform: pct_rank, direction: 0, row: ai_stack, layer: 2, weight: 0, licence: public}
+- {id: hyperscaler_capex, name: "Hyperscaler capex (MSFT, GOOGL, AMZN, META, ORCL)", source: sec_edgar, series: PaymentsToAcquirePropertyPlantAndEquipment, units: usd_millions, <<: *quarterly, transform: yoy, direction: 1, row: ai_stack, layer: 2, weight: 0.25, licence: public, enabled: false, notes: Phase 4}
+- {id: hyperscaler_capex_cuts, name: Hyperscalers guiding capex down q/q (count), source: manual, series: hyperscaler_capex_cuts, units: count, <<: *quarterly, direction: -1, row: ai_stack, layer: 2, weight: 0, licence: public, enabled: false, notes: Manual entry after each earnings season (FR-6)}
+- {id: tsmc_revenue, name: TSMC monthly revenue, source: manual, series: tsmc_revenue, units: usd_millions, <<: *monthly, transform: yoy, direction: 1, row: ai_stack, layer: 2, weight: 0.10, licence: public, enabled: false, notes: "Manual (FR-6); TWD to be confirmed"}
+- {id: korea_chip_exports, name: Korea semiconductor exports, source: manual, series: korea_chip_exports, units: usd_millions, <<: *monthly, transform: yoy, direction: 1, row: ai_stack, layer: 2, weight: 0.05, licence: public, enabled: false, notes: Manual (FR-6)}
+- {id: us_power_sales, name: US retail electricity sales, source: eia, series: electricity/retail-sales, units: count, <<: *monthly, transform: yoy, direction: 1, row: ai_stack, layer: 2, weight: 0.05, licence: public, enabled: false, notes: Phase 4}
+
+# ---------------------------------------------------------------- AI vs non-AI
+- id: ai_basket
+  name: Equal-weight AI basket (SMH, NVDA, VRT, CEG)
+  source: derived
+  formula: basket_return(smh, nvda, vrt, ceg)
+  units: ratio
+  <<: *daily
+  direction: 0
+  row: ai_vs_non_ai
+  layer: 2
+  weight: 0
+  licence: public
+  notes: Benchmark for rolling 120-day AI beta per holding (FR-12, Phase 2)
+- {id: spy_ai_beta_120d, name: SPY beta to AI basket (120d), source: derived, formula: "rolling_beta(spy, ai_basket, 120)", units: ratio, <<: *daily, direction: 0, row: ai_vs_non_ai, layer: 2, weight: 0, licence: public}
+
+# ---------------------------------------------------------------- AI bottlenecks and credit
+- {id: hy_oas, name: High-yield OAS (ICE BofA), source: fred, series: BAMLH0A0HYM2, units: percent, <<: *daily, stale_after_days: 4, direction: -1, row: ai_bottlenecks_credit, layer: 2, weight: 0.30, licence: restricted, catchup: true, notes: "ICE licence: raw values stay in the private store. FRED now serves only ~3 years of history."}
+- {id: ccc_oas, name: CCC & lower OAS (ICE BofA), source: fred, series: BAMLH0A3HYC, units: percent, <<: *daily, stale_after_days: 4, direction: -1, row: ai_bottlenecks_credit, layer: 2, weight: 0.20, licence: restricted, catchup: true}
+- {id: bbb_oas, name: BBB corporate OAS (ICE BofA), source: fred, series: BAMLC0A4CBBB, units: percent, <<: *daily, stale_after_days: 4, direction: -1, row: ai_bottlenecks_credit, layer: 2, weight: 0.15, licence: restricted, catchup: true}
+- {id: ig_oas, name: Investment-grade corporate OAS (ICE BofA), source: fred, series: BAMLC0A0CM, units: percent, <<: *daily, stale_after_days: 4, direction: -1, row: ai_bottlenecks_credit, layer: 2, weight: 0.15, licence: restricted, catchup: true}
+- {id: sloos_ci, name: Banks tightening C&I standards (SLOOS), source: fred, series: DRTSCILM, units: percent, <<: *quarterly, direction: -1, row: ai_bottlenecks_credit, layer: 2, weight: 0.10, licence: public}
+- {id: hyg, name: iShares High Yield Corporate Bond ETF, series: HYG, row: ai_bottlenecks_credit, layer: 2, <<: *price}
+- {id: jnk, name: SPDR High Yield Bond ETF, series: JNK, row: ai_bottlenecks_credit, layer: 2, <<: *price}
+- {id: lqd, name: iShares IG Corporate Bond ETF, series: LQD, row: ai_bottlenecks_credit, layer: 2, <<: *price}
+- {id: bkln, name: Invesco Senior Loan ETF, series: BKLN, row: ai_bottlenecks_credit, layer: 2, <<: *price}
+- {id: crwv, name: CoreWeave (AI-credit stress proxy), series: CRWV, row: ai_bottlenecks_credit, layer: 2, <<: *price, proxy: true, notes: "Listed 2025; short history"}
+- {id: orcl, name: Oracle (AI-credit stress proxy), series: ORCL, row: ai_bottlenecks_credit, layer: 2, <<: *price, proxy: true}
+- {id: hyg_lqd_ratio, name: HYG / LQD (credit risk appetite), source: derived, formula: hyg / lqd, units: ratio, <<: *daily, transform: pct_rank, direction: 1, row: ai_bottlenecks_credit, layer: 2, weight: 0.10, licence: public, proxy: true, notes: Free CDS data does not exist; ETF proxy}
+
+# ---------------------------------------------------------------- Tech competitiveness / value capture / future tech (manual, Phase 4)
+- {id: epoch_frontier_compute, name: Frontier training compute (Epoch AI), source: manual, series: epoch_frontier_compute, units: index, frequency: irregular, stale_after_days: 120, direction: 0, row: tech_competitiveness, layer: 2, weight: 0, licence: public, enabled: false, notes: Manual quarterly update}
+- {id: sp500_buyback_yield, name: S&P 500 buyback + dividend yield, source: manual, series: sp500_buyback_yield, units: percent, <<: *quarterly, direction: 1, row: value_capture_tax, layer: 2, weight: 0, licence: restricted, enabled: false, notes: S&P DJI quarterly release; manual}
+- {id: arxiv_ai_papers, name: arXiv cs.AI + cs.LG papers per week, source: manual, series: arxiv_ai_papers, units: count, <<: *weekly, transform: yoy, direction: 0, row: future_tech, layer: 2, weight: 0, licence: public, enabled: false, notes: "Phase 4: arXiv API"}
+
+# ============================================================ LAYER 3: Pricing
+- {id: fwd_pe, name: S&P 500 forward P/E (FactSet), source: manual, series: fwd_pe, units: ratio, <<: *weekly, direction: -1, row: valuations, layer: 3, weight: 0.40, licence: restricted, enabled: false, notes: "Manual (FR-6). Restricted: hand-entered values live in data/private/manual"}
+- {id: erp_simple, name: Earnings yield minus 10y real yield, source: derived, formula: "100 / fwd_pe - real_10y", units: percent, <<: *weekly, direction: 1, row: valuations, layer: 3, weight: 0.40, licence: public}
+- {id: cape, name: Shiller CAPE, source: manual, series: cape, units: ratio, <<: *monthly, transform: pct_rank, direction: -1, row: valuations, layer: 3, weight: 0.20, licence: restricted, enabled: false}
+- {id: vix, name: VIX, source: fred, series: VIXCLS, units: index, <<: *daily, direction: -1, row: options_pricing, layer: 3, weight: 0.40, licence: restricted, notes: "Cboe terms unconfirmed; derived values only until confirmed"}
+- {id: vix3m, name: VIX 3-month, source: fred, series: VXVCLS, units: index, <<: *daily, direction: 0, row: options_pricing, layer: 3, weight: 0, licence: restricted}
+- {id: vix_term, name: VIX / VIX3M term structure, source: derived, formula: vix / vix3m, units: ratio, <<: *daily, direction: -1, row: options_pricing, layer: 3, weight: 0.60, licence: public, notes: "> 1.0 = inverted (stress)"}
+- {id: cftc_es_net, name: CFTC S&P 500 e-mini asset-manager net position, source: cftc, series: "13874A", units: count, <<: *weekly, transform: pct_rank, direction: -1, row: positioning, layer: 3, weight: 0.5, licence: public, enabled: false, notes: Phase 4}
+- {id: aaii_bull_bear, name: AAII bull-bear spread, source: manual, series: aaii_bull_bear, units: percent, <<: *weekly, direction: -1, row: positioning, layer: 3, weight: 0.5, licence: restricted, enabled: false, notes: Contrarian; check AAII terms}
+# Capital flows: regional prices
+- {id: inda, name: iShares MSCI India ETF, series: INDA, row: capital_flows, layer: 3, <<: *price}
+- {id: nifty, name: Nifty 50 index, series: "^NSEI", params: {providers: [yfinance]}, units: index, row: capital_flows, layer: 3, <<: *price, notes: "Tiingo has no index data; yfinance only (unofficial)"}
+- {id: hsi, name: Hang Seng index, series: "^HSI", params: {providers: [stooq, yfinance], stooq: "^hsi"}, units: index, row: capital_flows, layer: 3, <<: *price, notes: "Tiingo has no index data; Stooq symbol unverified from the build sandbox"}
+- {id: kweb, name: KraneShares China Internet ETF, series: KWEB, row: capital_flows, layer: 3, <<: *price}
+- {id: tchi, name: iShares MSCI China Multisector Tech ETF, series: TCHI, row: capital_flows, layer: 3, <<: *price}
+- {id: ewy, name: iShares MSCI South Korea ETF, series: EWY, row: capital_flows, layer: 3, <<: *price}
+- {id: ewt, name: iShares MSCI Taiwan ETF, series: EWT, row: capital_flows, layer: 3, <<: *price}
+- {id: ewj, name: iShares MSCI Japan ETF, series: EWJ, row: capital_flows, layer: 3, <<: *price}
+- {id: ezu, name: iShares MSCI Eurozone ETF, series: EZU, row: capital_flows, layer: 3, <<: *price}
+- {id: inda_qqq_ratio, name: INDA / QQQ relative strength, source: derived, formula: inda / qqq, units: ratio, <<: *daily, transform: pct_rank, direction: 0, row: capital_flows, layer: 3, weight: 0, licence: public}
+- {id: india_fpi_net, name: India FPI net equity flows (NSDL), source: nsdl, series: fpi_daily_equity, units: usd_millions, <<: *daily, direction: 1, row: capital_flows, layer: 3, weight: 0.3, licence: public, enabled: false, notes: Phase 4}
+- {id: hk_southbound, name: HK Stock Connect southbound net buying, source: hkex, series: southbound_net, units: usd_millions, <<: *daily, direction: 1, row: capital_flows, layer: 3, weight: 0.2, licence: public, enabled: false, notes: Phase 4}
+
+# ============================================================ LAYER 4: Catalysts and signposts
+- {id: crash_tracker_composite, name: Crash-tracker composite signal, source: crash_tracker, series: composite, units: index, <<: *daily, direction: -1, row: crash_signals, layer: 4, weight: 1.0, licence: public, enabled: false, notes: "Hook for the existing crash-tracker repo outputs; wired up once that repo is attached"}
+
+# ============================================================ LAYER 5: Expression and risk
+- {id: gld, name: SPDR Gold Shares, series: GLD, row: defensives, layer: 5, <<: *price, notes: Gold is no longer on FRED}
+- {id: tlt, name: iShares 20+ Year Treasury ETF, series: TLT, row: defensives, layer: 5, <<: *price}
+- {id: xlp, name: Consumer Staples Select SPDR, series: XLP, row: defensives, layer: 5, <<: *price}
+- {id: xlu, name: Utilities Select SPDR, series: XLU, row: defensives, layer: 5, <<: *price, notes: Also an AI power-demand play}
+- {id: iwd, name: iShares Russell 1000 Value, series: IWD, row: defensives, layer: 5, <<: *price}
+- {id: iwf, name: iShares Russell 1000 Growth, series: IWF, row: defensives, layer: 5, <<: *price}
+- {id: qual, name: iShares MSCI USA Quality Factor, series: QUAL, row: defensives, layer: 5, <<: *price}
+- {id: spy_tlt_corr_60d, name: 60-day SPY-TLT return correlation, source: derived, formula: "rolling_corr(pct_change(spy, 1), pct_change(tlt, 1), 60)", units: ratio, <<: *daily, direction: -1, row: defensives, layer: 5, weight: 0.5, licence: public, notes: "Sign flip is a regime signal; positive = bonds stop hedging"}
+- {id: iwd_iwf_ratio, name: Value vs growth, source: derived, formula: iwd / iwf, units: ratio, <<: *daily, transform: pct_rank, direction: 0, row: defensives, layer: 5, weight: 0, licence: public}
