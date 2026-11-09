@@ -183,12 +183,21 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: python -m framework_monitor.cli guard
 
+      - name: AI briefing / Saturday weekly digest (GitHub issue)
+        if: steps.gate.outputs.skip != 'true' && steps.mode.outputs.mode == 'main'
+        continue-on-error: true   # a briefing problem never fails the data run
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python -m framework_monitor.cli briefing
+
       - name: Commit public data
         if: steps.gate.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/parquet/public data/health data/summary.md
+          if [ -d data/briefings ]; then git add data/briefings; fi
           if git diff --cached --quiet; then
             echo "No data changes to commit."
             exit 0

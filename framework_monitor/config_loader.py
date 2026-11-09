@@ -36,8 +36,9 @@ def load_config(config_dir: Path | None = None) -> Config:
         "scenarios": _read(d / "scenarios.yaml"),
         "judgements": _read(d / "judgements.yaml") or [],
     }
-    if (d / "alerts.yaml").exists():
-        raw["alerts"] = _read(d / "alerts.yaml") or {}
+    for name in ("alerts", "briefing"):
+        if (d / f"{name}.yaml").exists():
+            raw[name] = _read(d / f"{name}.yaml") or {}
     try:
         return Config.model_validate(raw)
     except ValidationError as exc:

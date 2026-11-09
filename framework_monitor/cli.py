@@ -16,6 +16,7 @@ Phase 1 commands:
   replay          run the engine over a date range (back-tests, history)
   publish         build the static site, CSVs and Excel tracker into site/ (then licensing guard)
   alert           open / comment / close GitHub issues for alerts (FR-23, FR-24)
+  briefing        AI-written daily briefing / Saturday weekly digest as a GitHub issue (FR-25)
   run-all         rebuild -> fetch -> check -> compute -> snapshot -> publish -> guard
 """
 
@@ -266,6 +267,44 @@ def cmd_alert(args, paths) -> int:
     return 0
 
 
+def cmd_briefing(args, paths) -> int:
+    import json
+
+    from framework_monitor.outputs import briefing as br
+    from framework_monitor.outputs.alerts import GitHubIssues
+
+    cfg = load_config(args.config_dir)
+    client = None
+    if not args.no_ai and os.environ.get("ANTHROPIC_API_KEY"):
+        import anthropic
+
+        client = anthropic.Anthropic()
+    store = _open_store(paths, fresh=False)
+    try:
+        r = _latest_live(store, cfg)
+        hp = paths.health_dir / "health.json"
+        health = json.loads(hp.read_text()) if hp.exists() else {}
+        res = br.produce(store, cfg, r, client=client, kind=args.kind, health=health, use_ai=not args.no_ai)
+    finally:
+        store.close()
+    text = f"# {res.title}\n\n{res.body}"
+    if args.dry_run:
+        out = Path(args.out) if args.out else None
+        if out:
+            out.write_text(text)
+            print(f"dry run: briefing written to {out}")
+        else:
+            print(text)
+        return 0
+    archive = paths.data_dir / "briefings" / f"{r.as_of.isoformat()}-{res.kind}.md"
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    archive.write_text(text)
+    res = br.post_issue(GitHubIssues(), cfg, res, r.as_of)
+    _summary(f"{res.kind} briefing for {r.as_of}: issue #{res.issue_number} {res.action}; "
+             + ("AI text included" if res.ai else f"facts only ({res.note})"))
+    return 0
+
+
 def cmd_run_all(args, paths) -> int:
     args.fresh = True
     args.as_of, args.seed_sessions = None, 0
@@ -320,6 +359,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp = add("alert", cmd_alert, "GitHub issue alerts")
     sp.add_argument("--dry-run", action="store_true", help="print what would happen; touch nothing")
     sp.add_argument("--force", nargs="+", metavar="SIGNPOST", help="treat these signposts as active (alert self-test)")
+    sp = add("briefing", cmd_briefing, "AI briefing / weekly digest as a GitHub issue")
+    sp.add_argument("--kind", choices=["daily", "weekly"], default=None, help="default: weekly on the configured weekday")
+    sp.add_argument("--dry-run", action="store_true", help="do not post; print or write the issue text")
+    sp.add_argument("--out", default=None, help="with --dry-run: write the text to this file")
+    sp.add_argument("--no-ai", action="store_true", help="facts only, no Claude call")
     sp = add("replay", cmd_replay, "run the engine over a date range")
     sp.add_argument("--start", type=_date, required=True)
     sp.add_argument("--end", type=_date, required=True)

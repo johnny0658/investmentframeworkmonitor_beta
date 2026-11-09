@@ -276,6 +276,16 @@ class AlertsConfig(_Strict):
     dashboard_url: str = ""
 
 
+class BriefingConfig(_Strict):
+    model: str = "claude-opus-5-5"
+    effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    label: str = "briefing"
+    target_words: int = Field(default=500, ge=100, le=2000)
+    weekly_on_weekday: int = Field(default=4, ge=0, le=6)
+    near_trigger_fraction: float = Field(default=0.10, gt=0, le=1)
+    mover_threshold: float = Field(default=0.25, gt=0, le=4)
+
+
 class Config(_Strict):
     indicators: list[Indicator]
     rows: RowsFile
@@ -283,6 +293,7 @@ class Config(_Strict):
     scenarios: ScenariosFile
     judgements: list[Judgement]
     alerts: AlertsConfig = Field(default_factory=AlertsConfig)
+    briefing: BriefingConfig = Field(default_factory=BriefingConfig)
 
     @model_validator(mode="after")
     def _cross_refs(self) -> "Config":

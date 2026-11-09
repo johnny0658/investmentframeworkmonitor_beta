@@ -1,0 +1,8 @@
+# AI briefing (daily) and weekly digest (FR-25), posted as GitHub issues.
+model: claude-opus-5-5     # Claude Opus 5.5
+effort: medium             # low | medium | high | xhigh | max
+label: briefing            # issue label; separate from alert issues
+target_words: 500          # rough length of the AI-written part
+weekly_on_weekday: 4       # the session whose main run also produces the weekly digest (4 = Friday US session, Saturday morning SGT)
+near_trigger_fraction: 0.10  # list inactive signposts within 10% of their threshold as "close to triggering"
+mover_threshold: 0.25      # row score change worth mentioning

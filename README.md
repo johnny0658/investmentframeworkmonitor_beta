@@ -46,7 +46,11 @@ indicators.yaml ──► fetchers (fred, alfred, treasury_fiscal, prices, manua
 4. **Alert emails:** alerts are GitHub issues labelled `framework-monitor`. Make sure you
    watch the repo (Watch → All activity, or at least Issues) and that email
    notifications are on (github.com/settings/notifications).
-5. After that, the schedule runs by itself: 22:30 UTC (main) and 13:00 UTC
+5. **AI briefing (optional):** add the repo secret `ANTHROPIC_API_KEY` (console.anthropic.com → API keys;
+   billed per use, about $0.10–0.15 per briefing on Claude Opus 5.5). Every main run then opens a
+   `briefing` issue (Saturday's is the weekly digest) and closes the previous one. Without the key
+   the issue still appears, with the facts only. Settings live in `config/briefing.yaml`.
+6. After that, the schedule runs by itself: 22:30 UTC (main) and 13:00 UTC
    (catch-up) on NYSE trading days.
 
 ## Commands
@@ -85,6 +89,10 @@ framework-monitor publish            # build site/ (dashboard, CSVs, Excel), lic
 
 ```bash
 framework-monitor alert --dry-run    # show which alert issues would open / comment / close
+```
+
+```bash
+framework-monitor briefing --dry-run --no-ai   # preview today's briefing issue (facts only, no API call)
 ```
 
 Other commands: `fetch`, `check`, `snapshot`, `guard`, `verify-series`,
