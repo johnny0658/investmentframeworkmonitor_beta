@@ -85,3 +85,36 @@ def compute_signal(ind: Indicator, raw: pd.Series, as_of: dt.date, stale_overrid
     base.z = (xv - mu) / sigma
     base.signal = clip(ind.direction * base.z) if ind.direction else None  # direction 0 = monitor only
     return base
+
+
+def signal_history(ind: Indicator, raw: pd.Series, start: pd.Timestamp | None = None) -> pd.DataFrame:
+    """z-score and signal over time (for charts), same rules as `compute_signal`.
+
+    Uses a time-based rolling window of the indicator's window length (in days),
+    so values can differ from `compute_signal` by a day at leap-year edges.
+    Columns: transformed, z, percentile, signal.
+    """
+    raw = raw.dropna().sort_index()
+    x = transform(raw, ind.transform, ind.frequency)
+    if x.empty:
+        return pd.DataFrame(columns=["transformed", "z", "percentile", "signal"])
+    days = f"{int(round(365.25 * window_years(ind.frequency)))}D"
+    roll = x.rolling(days, min_periods=MIN_WINDOW_OBS)
+    out = pd.DataFrame({"transformed": x})
+    if ind.transform == "pct_rank":
+        def pr(w):
+            last = w[-1]
+            return (np.sum(w < last) + 0.5 * np.sum(w == last)) / len(w)
+        p = roll.apply(pr, raw=True)
+        out["z"] = np.nan
+        out["percentile"] = p
+        out["signal"] = (ind.direction * (4 * p - 2)).clip(-CLIP, CLIP) if ind.direction else np.nan
+    else:
+        mu, sd = roll.mean(), roll.std()
+        z = (x - mu) / sd.replace(0, np.nan)
+        out["z"] = z
+        out["percentile"] = np.nan
+        out["signal"] = (ind.direction * z).clip(-CLIP, CLIP) if ind.direction else np.nan
+    if start is not None:
+        out = out[out.index >= start]
+    return out

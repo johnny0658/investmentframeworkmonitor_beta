@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="warn">Scenario priors and likelihood ratios are still the PRD placeholders; indicator weights and directions are first-pass defaults.</p>
+
+<div class="grid g2">
+  <section class="card">
+    <h3>Scenario probabilities</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>Scenario</th><th class="n">Now</th><th class="n">1w ago</th><th class="n">4w ago</th><th class="n">Prior</th><th class="n">LR ×</th></tr></thead>
+      <tbody>
+      {% for s in scenarios %}
+        <tr title="{{ s.description }}"><td><b>{{ s.scenario_id }}</b> {{ s.name }}</td>
+          <td class="n"><b>{{ s.now | pct }}</b></td><td class="n">{{ s.w1 | pct }}</td><td class="n">{{ s.w4 | pct }}</td>
+          <td class="n muted">{{ s.prior | pct }}</td><td class="n muted">{{ s.multiplier | num }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small muted">As of {{ as_of }}. Final = 0.8 × posterior + 0.2 × confirmed prior.</p>
+    <div id="probchart" class="chart"></div>
+  </section>
+
+  <section class="card">
+    <h3>Regime</h3>
+    {% if regime.box %}
+      <div class="big">{{ regime.box.replace('_', ' ') }}</div>
+      <p class="small">Growth <b>{{ 'up' if regime.growth_up else 'down' }}</b> ({{ regime.growth_detail }}).<br>
+      Inflation <b>{{ 'up' if regime.inflation_up else 'down' }}</b>: core PCE 3m annualised {{ regime.core_pce_3m_ann | num }}% vs 12m {{ regime.core_pce_12m | num }}%.</p>
+      <p class="small muted">Sources: NY Fed WEI (FRED WEI), BEA core PCE (FRED PCEPILFE). As of {{ as_of }}.</p>
+    {% else %}<p class="muted">Not enough data.</p>{% endif %}
+    {% if regime_probs %}
+      <h3 style="margin-top:14px">My regime probabilities (6 months)</h3>
+      <table><tbody>{% for k, v in regime_probs.items() %}<tr><td>{{ k.replace('_', ' ') }}{% if k == regime.box %} <span class="chip">current</span>{% endif %}</td><td class="n">{{ v | pct }}</td></tr>{% endfor %}</tbody></table>
+    {% endif %}
+
+    <h3 style="margin-top:18px">Active signposts</h3>
+    {% if active %}
+      {% for s in active %}
+        <div class="rowline"><div><a href="signposts.html#{{ s.signpost_id }}"><b>{{ s.name }}</b></a> <span class="chip">{{ s.family }}</span>
+          {% if s.stale %}<span class="chip stale">stale data</span>{% endif %}<br><code>{{ s.condition }}</code></div>
+          <div class="small muted n">since {{ s.last_triggered or '–' }}</div></div>
+      {% endfor %}
+    {% else %}<p class="muted">None.</p>{% endif %}
+  </section>
+</div>
+
+<h2>Framework rows</h2>
+<div class="grid g5">
+{% for layer in layers %}
+  <section class="card">
+    <h3>Layer {{ layer.id }}: {{ layer.name }}</h3>
+    {% for r in layer.rows %}
+      <div class="rowline">
+        <div><a href="rows/{{ r.row_id }}.html">{{ r.name }}</a>
+          {% if r.override_active %}<span class="chip" title="{{ r.override_reason }}">override</span>{% endif %}
+          {% if r.override_expired %}<span class="chip stale">override expired</span>{% endif %}
+          <div class="bar" title="confidence {{ r.final_confidence | num }}"><span style="width: {{ (100 * (r.final_confidence or 0)) | round(0) }}%"></span></div>
+        </div>
+        <div class="n"><span class="score t-{{ r.final_score | tone }}">{{ r.final_score | num(2, true) }}</span>
+          <span class="muted">{{ {'up': '↑', 'down': '↓', 'flat': '→'}.get(r.arrow, '') }}</span></div>
+      </div>
+    {% endfor %}
+  </section>
+{% endfor %}
+</div>
+<p class="small muted">Score −2 (bearish for risk assets) to +2 (bullish); arrow = change vs 1 week ago (±0.25); bar = confidence (freshness × agreement). “–” = no data yet (source arrives in a later phase).</p>
+
+<h2>Data health</h2>
+<div class="card strip">
+  <span>Indicators enabled <b>{{ health.indicators_enabled or '–' }}</b></span>
+  <span>With data <b>{{ health.indicators_with_data or '–' }}</b></span>
+  <span>Stale <b>{{ (health.stale or []) | length }}</b></span>
+  <span>Failing <b>{{ (health.failing or []) | length }}</b></span>
+  <span>Source alerts <b>{{ (health.source_alerts or []) | length }}</b></span>
+  <span>Held values <b>{{ health.held_values or 0 }}</b></span>
+  <span class="muted">as of {{ health.as_of or '–' }} · <a href="health.html">details</a></span>
+</div>
+{% if notes %}<h2>Engine notes</h2><ul>{% for n in notes %}<li class="small">{{ n }}</li>{% endfor %}</ul>{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="prob-data">{{ prob_chart | tojson_safe }}</script>
+<script>
+(function () {
+  var d = JSON.parse(document.getElementById("prob-data").textContent);
+  if (!d.dates.length || !window.Plotly) return;
+  var traces = Object.keys(d.series).map(function (k) { return {x: d.dates, y: d.series[k], name: k, mode: "lines", hovertemplate: "%{y:.1%}"}; });
+  var shapes = d.seeded_until ? [{type: "rect", xref: "x", yref: "paper", x0: d.dates[0], x1: d.seeded_until, y0: 0, y1: 1,
+    fillcolor: css("--chip"), opacity: 0.5, line: {width: 0}, layer: "below"}] : [];
+  Plotly.newPlot("probchart", traces, baseLayout({yaxis: {tickformat: ".0%", gridcolor: css("--line")}, shapes: shapes,
+    annotations: d.seeded_until ? [{x: d.seeded_until, y: 1, xref: "x", yref: "paper", text: "backfilled ◂", showarrow: false, xanchor: "right", font: {size: 11, color: css("--muted")}}] : []}),
+    {displayModeBar: false, responsive: true});
+})();
+</script>
+{% endblock %}

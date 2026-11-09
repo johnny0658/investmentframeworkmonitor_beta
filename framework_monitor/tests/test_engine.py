@@ -233,3 +233,26 @@ def test_regime_boxes():
     r = classify({"wei": -wei, "core_pce": pce}, dt.date(2026, 12, 31))
     assert r.box == "stagflation"
     assert classify({}, dt.date(2026, 1, 1)).box is None
+
+
+# ================================================================ hysteresis
+def test_hysteresis_confirm_and_clear_days():
+    from framework_monitor.engine.compute import hysteresis
+
+    idx = pd.date_range("2026-01-01", periods=10, freq="D")
+    cond = pd.Series([0, 1, 1, 0, 1, 0, 0, 0, 1, 0], index=idx).astype(bool)
+    # confirm 2: on at day 3 (two in a row). clear 3: the single day off (day 4) does not clear;
+    # three off in a row (days 6-8) clears on day 8.
+    assert hysteresis(cond, None, 2, 3).astype(int).tolist() == [0, 0, 1, 1, 1, 1, 1, 0, 0, 0]
+    # without hysteresis (clear 1) it flaps
+    assert hysteresis(cond, None, 1, 1).astype(int).tolist() == [0, 1, 1, 0, 1, 0, 0, 0, 1, 0]
+
+
+def test_hysteresis_level_based_clear():
+    from framework_monitor.engine.compute import hysteresis
+
+    idx = pd.date_range("2026-01-01", periods=7, freq="D")
+    brent = pd.Series([108, 112, 107, 106, 104, 104, 104.0], index=idx)
+    # on above 110; between 105 and 110 it stays on; clears after 3 days below 105
+    h = hysteresis(brent > 110, brent < 105, 1, 3)
+    assert h.astype(int).tolist() == [0, 1, 1, 1, 1, 1, 0]

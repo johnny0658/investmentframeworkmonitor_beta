@@ -1,0 +1,15 @@
+# GitHub-issue alerts (FR-23, FR-24). Issues email me; one open issue per alert key.
+
+label: framework-monitor          # every alert issue carries this label
+
+# on_change: comment on an open alert only when its state changes
+#            (e.g. data goes stale, a move gets bigger, a different source fails)
+# every_run: comment on every run while the alert stays open
+comment_policy: on_change
+
+scenario_move_points: 0.10        # alert when a scenario moves >= 10 points ...
+scenario_move_sessions: 5         # ... over this many sessions (scored live, never seeded)
+row_cross_threshold: 1.0          # alert while |row score| >= 1
+source_failure_runs: 3            # alert when a source fails this many runs in a row
+
+dashboard_url: "https://johnny0658.github.io/investmentframeworkmonitor_beta/"   # issues link here

@@ -14,9 +14,9 @@ Phase 1 commands:
   private-store   pack | unpack the encrypted private store
   compute         run the scoring engine for one date (default today) -> data/summary.md
   replay          run the engine over a date range (back-tests, history)
-  run-all         rebuild -> fetch -> check -> compute -> snapshot -> guard
-
-publish and alert arrive in Phase 3.
+  publish         build the static site, CSVs and Excel tracker into site/ (then licensing guard)
+  alert           open / comment / close GitHub issues for alerts (FR-23, FR-24)
+  run-all         rebuild -> fetch -> check -> compute -> snapshot -> publish -> guard
 """
 
 from __future__ import annotations
@@ -213,10 +213,63 @@ def cmd_replay(args, paths) -> int:
     return 0
 
 
+def _latest_live(store, cfg):
+    from framework_monitor.engine.compute import recompute
+
+    row = store.con.execute(
+        "SELECT max(as_of) FROM engine_runs WHERE run_id NOT LIKE 'seed%' AND run_id NOT LIKE 'replay%'").fetchone()
+    if row[0] is None:
+        raise SystemExit("no live engine result yet: run `compute` first")
+    return recompute(store, cfg, row[0])
+
+
+def cmd_publish(args, paths) -> int:
+    import json
+
+    from framework_monitor.outputs.site.build import build_site
+
+    cfg = load_config(args.config_dir)
+    store = _open_store(paths, fresh=False)
+    try:
+        r = _latest_live(store, cfg)
+        hp = paths.health_dir / "health.json"
+        health = json.loads(hp.read_text()) if hp.exists() else {}
+        files = build_site(store, cfg, r, paths, health)
+    finally:
+        store.close()
+    print(f"site built for {r.as_of}: {len(files)} files in {paths.site_dir}")
+    v = licensing.scan_paths([paths.site_dir], cfg)
+    if v:
+        _summary("LICENSING GUARD FAILED on site:\n" + "\n".join(f"- {x}" for x in v))
+        return 1
+    return 0
+
+
+def cmd_alert(args, paths) -> int:
+    from framework_monitor.outputs.alerts import GitHubIssues, desired_alerts, reconcile
+
+    cfg = load_config(args.config_dir)
+    store = _open_store(paths, fresh=False)
+    try:
+        r = _latest_live(store, cfg)
+        desired = desired_alerts(store, cfg, r, forced=tuple(args.force or ()))
+        gh = None
+        if not args.dry_run:
+            gh = GitHubIssues()
+        actions = reconcile(gh, cfg, desired, r.as_of, store=store, dry_run=args.dry_run)
+    finally:
+        store.close()
+    lines = [f"alerts for {r.as_of}{' (dry run)' if args.dry_run else ''}: "
+             + ", ".join(f"{k} {sum(a.action == k for a in actions)}" for k in ("open", "comment", "keep", "close"))]
+    lines += [f"- {a.action}: {a.key}" + (f" (#{a.issue_number})" if a.issue_number else "") for a in actions]
+    _summary("\n".join(lines))
+    return 0
+
+
 def cmd_run_all(args, paths) -> int:
     args.fresh = True
     args.as_of, args.seed_sessions = None, 0
-    for step in (cmd_fetch, cmd_check, _compute_step, cmd_snapshot, cmd_guard):
+    for step in (cmd_fetch, cmd_check, _compute_step, cmd_snapshot, cmd_publish, cmd_guard):
         rc = step(args, paths)
         if rc:
             return rc
@@ -263,6 +316,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="known = only vintages known on as_of (reproducible); latest = today's values")
     sp.add_argument("--seed-sessions", type=int, default=0,
                     help="first fill this many earlier NYSE sessions that have no results yet")
+    add("publish", cmd_publish, "build the static site + exports")
+    sp = add("alert", cmd_alert, "GitHub issue alerts")
+    sp.add_argument("--dry-run", action="store_true", help="print what would happen; touch nothing")
+    sp.add_argument("--force", nargs="+", metavar="SIGNPOST", help="treat these signposts as active (alert self-test)")
     sp = add("replay", cmd_replay, "run the engine over a date range")
     sp.add_argument("--start", type=_date, required=True)
     sp.add_argument("--end", type=_date, required=True)

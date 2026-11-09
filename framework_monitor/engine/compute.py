@@ -20,18 +20,24 @@ import datetime as dt
 import logging
 from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 
 from framework_monitor import trading_calendar
 from framework_monitor.engine import regime as regime_mod
 from framework_monitor.engine import scenarios as scen_mod
-from framework_monitor.engine.formulas import EvalError, Evaluator, UnitError, Val, _is_money, empty_series, lhs_threshold
+from framework_monitor.engine.formulas import EvalError, Evaluator, UnitError, Val, _is_money, align, empty_series, lhs_threshold
 from framework_monitor.engine.rows import RowScore, can_produce, score_rows
 from framework_monitor.engine.signals import Signal, compute_signal
 from framework_monitor.schemas import Config, Indicator, Signpost
 from framework_monitor.store.db import Store
 
 log = logging.getLogger(__name__)
+
+# Bump whenever scoring logic changes, so seeded history computed by older logic
+# is recomputed (live rows are kept as they were: that is what the monitor said).
+# 3 = signpost hysteresis (clear_days / clear_condition).
+ENGINE_VERSION = "3"
 
 
 @dataclass
@@ -135,6 +141,36 @@ def _held(store: Store) -> dict[str, set]:
     return out
 
 
+def hysteresis(cond: pd.Series, clear: pd.Series | None, confirm_days: int, clear_days: int) -> pd.Series:
+    """Active/inactive state over time.
+
+    Inactive -> active when `cond` has held for `confirm_days` consecutive
+    observations. Active -> inactive when `clear` (default: not `cond`) has held
+    for `clear_days` consecutive observations. The state is derived from the data
+    alone (walked from the first observation), so recomputing any date gives the
+    same answer without stored state.
+    """
+    c = cond.astype(bool)
+    if clear is None:
+        k = ~c
+    else:
+        c, k = align(c.astype(float), clear.astype(float))
+        c, k = c.astype(bool), k.astype(bool)
+    out = np.zeros(len(c), dtype=bool)
+    active, run_on, run_off = False, 0, 0
+    for i, (on, off) in enumerate(zip(c.to_numpy(), k.to_numpy())):
+        if not active:
+            run_on = run_on + 1 if on else 0
+            if run_on >= confirm_days:
+                active, run_off = True, 0
+        else:
+            run_off = run_off + 1 if off else 0
+            if run_off >= clear_days:
+                active, run_on = False, 0
+        out[i] = active
+    return pd.Series(out, index=c.index)
+
+
 def evaluate_signpost(sp: Signpost, book: SeriesBook) -> SignpostState:
     cfg = book.cfg
     simple = lhs_threshold(sp.condition)
@@ -154,8 +190,15 @@ def evaluate_signpost(sp: Signpost, book: SeriesBook) -> SignpostState:
     if cond.empty:
         base.note = "no data"
         return base
-    tail = cond.iloc[-sp.confirm_days:]
-    base.active = bool(len(tail) == sp.confirm_days and tail.astype(bool).all())
+    clear = None
+    if sp.clear_condition:
+        try:
+            clear = book.ev.eval(sp.clear_condition).data
+        except (UnitError, EvalError) as exc:
+            base.note = f"clear_condition: {exc}"
+            return base
+        clear = clear[clear.index <= pd.Timestamp(book.as_of)]
+    base.active = bool(hysteresis(cond, clear, sp.confirm_days, sp.clear_days).iloc[-1])
     base.status = "active" if base.active else "inactive"
     base.stale = not all(book.is_fresh(i) for i in sp.indicators)
     if lhs_src is not None:
@@ -209,7 +252,8 @@ def persist(store: Store, cfg: Config, r: EngineResult, run_id: str) -> list[dic
     """Write one as_of's rows to the engine tables. Returns signpost events (triggered/cleared)."""
     by = cfg.by_id
     d = r.as_of
-    store.replace_rows("engine_runs", d, pd.DataFrame([{"as_of": d, "knowledge_date": r.knowledge_date, "mode": r.mode, "run_id": run_id}]))
+    store.replace_rows("engine_runs", d, pd.DataFrame([{"as_of": d, "knowledge_date": r.knowledge_date, "mode": r.mode,
+                                                         "run_id": run_id, "engine_version": ENGINE_VERSION}]))
     store.replace_rows("signals", d, pd.DataFrame([{
         "as_of": d, "indicator_id": s.indicator_id, "row_id": by[s.indicator_id].row, "obs_date": s.obs_date,
         "raw": s.raw, "transformed": s.transformed, "percentile": s.percentile, "z": s.z, "signal": s.signal,
@@ -268,7 +312,9 @@ def sessions_between(start: dt.date, end: dt.date) -> list[dt.date]:
 def seed_history(store: Store, cfg: Config, before: dt.date, n_sessions: int) -> int:
     """Fill the engine tables for the n NYSE sessions before `before` (latest-vintage mode),
     skipping dates already computed."""
-    have = {r[0] for r in store.con.execute("SELECT DISTINCT as_of FROM scenario_probs").fetchall()}
+    # keep live results and seeds made by the current engine; redo seeds from older logic
+    have = {r[0] for r in store.con.execute(
+        "SELECT as_of FROM engine_runs WHERE run_id NOT LIKE 'seed%' OR engine_version = ?", [ENGINE_VERSION]).fetchall()}
     start = before - dt.timedelta(days=int(n_sessions * 1.5) + 10)
     dates = [d for d in sessions_between(start, before - dt.timedelta(days=1))[-n_sessions:] if d not in have]
     for d in dates:

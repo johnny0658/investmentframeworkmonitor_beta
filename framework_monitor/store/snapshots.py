@@ -23,7 +23,7 @@ from framework_monitor.schemas import Config
 from framework_monitor.settings import Paths
 from framework_monitor.store.db import Store
 
-PUBLIC_TABLES = ["runs", "fetch_log", "engine_runs", "row_scores", "regime", "scenario_probs", "signpost_events"]
+PUBLIC_TABLES = ["runs", "fetch_log", "alerts", "engine_runs", "row_scores", "regime", "scenario_probs", "signpost_events"]
 SPLIT_TABLES = ["quality_flags"]  # carry raw values -> split by indicator licence
 # Engine tables with a `licence` column: restricted rows are published with these
 # columns nulled (z-scores and signals stay public); full rows go to the private side.

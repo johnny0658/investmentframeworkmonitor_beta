@@ -101,6 +101,9 @@ def scan_file(path: Path, public_ids: set[str], restricted_ids: set[str]) -> lis
             out += _table_violations(pd.read_csv(path), public_ids, where)
         elif path.suffix == ".json":
             _walk_json(json.loads(path.read_text()), public_ids, where, out)
+        elif path.suffix == ".xlsx":
+            for sheet, df in pd.read_excel(path, sheet_name=None, engine="openpyxl").items():
+                out += _table_violations(df, public_ids, f"{where} [{sheet}]")
         elif path.suffix in {".html", ".htm"}:
             for block in _JSON_SCRIPT.findall(path.read_text(errors="ignore")):
                 try:
@@ -121,7 +124,7 @@ def scan_paths(paths: list[Path], cfg: Config) -> list[Violation]:
             continue
         files = [base] if base.is_file() else sorted(p for p in base.rglob("*") if p.is_file())
         for f in files:
-            if f.suffix in TABLE_SUFFIXES | {".html", ".htm"}:
+            if f.suffix in TABLE_SUFFIXES | {".html", ".htm", ".xlsx"}:
                 out += scan_file(f, public_ids, restricted_ids)
     return out
 

@@ -188,13 +188,18 @@ class Signpost(_Strict):
     family: Literal["credit", "volatility", "rates", "oil", "ai_fundamentals", "flows", "liquidity"]
     condition: str
     confirm_days: int = Field(default=1, ge=1)
+    # Hysteresis: once active, a signpost clears only after `clear_condition`
+    # (default: NOT condition) has held for `clear_days` consecutive observations.
+    clear_days: int = Field(default=3, ge=1)
+    clear_condition: str | None = None
     lr: dict[str, float]
     notes: str | None = None
 
-    @field_validator("condition")
+    @field_validator("condition", "clear_condition")
     @classmethod
-    def _parse(cls, v: str) -> str:
-        expression_names(v, CONDITION_FUNCTIONS)
+    def _parse(cls, v: str | None) -> str | None:
+        if v is not None:
+            expression_names(v, CONDITION_FUNCTIONS)
         return v
 
     @field_validator("lr")
@@ -207,7 +212,10 @@ class Signpost(_Strict):
 
     @property
     def indicators(self) -> set[str]:
-        return expression_names(self.condition, CONDITION_FUNCTIONS)
+        names = expression_names(self.condition, CONDITION_FUNCTIONS)
+        if self.clear_condition:
+            names |= expression_names(self.clear_condition, CONDITION_FUNCTIONS)
+        return names
 
 
 class Scenario(_Strict):
@@ -258,12 +266,23 @@ class Judgement(_Strict):
     expires: dt.date
 
 
+class AlertsConfig(_Strict):
+    label: str = "framework-monitor"
+    comment_policy: Literal["on_change", "every_run"] = "on_change"
+    scenario_move_points: float = Field(default=0.10, gt=0, le=1)
+    scenario_move_sessions: int = Field(default=5, ge=1)
+    row_cross_threshold: float = Field(default=1.0, gt=0, le=2)
+    source_failure_runs: int = Field(default=3, ge=1)
+    dashboard_url: str = ""
+
+
 class Config(_Strict):
     indicators: list[Indicator]
     rows: RowsFile
     signposts: list[Signpost]
     scenarios: ScenariosFile
     judgements: list[Judgement]
+    alerts: AlertsConfig = Field(default_factory=AlertsConfig)
 
     @model_validator(mode="after")
     def _cross_refs(self) -> "Config":

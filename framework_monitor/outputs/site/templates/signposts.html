@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Signposts · Framework Monitor{% endblock %}
+{% block content %}
+<h2>Signposts</h2>
+<p class="small muted">As of {{ as_of }}. Distance = how far the value must still move to trigger (negative = past the threshold).
+A signpost turns on after its condition holds for the confirm days, and clears only after its clear rule holds for the clear days (hysteresis).</p>
+<div class="card scroll"><table>
+  <thead><tr><th>Signpost</th><th>Condition</th><th>Status</th><th class="n">Current</th><th class="n">Threshold</th><th class="n">Distance</th><th>Last on / off</th><th>Likelihood ratios</th></tr></thead>
+  <tbody>
+  {% for s in signposts %}
+    <tr id="{{ s.signpost_id }}">
+      <td><b>{{ s.name }}</b><br><span class="chip">{{ s.family }}</span></td>
+      <td class="small"><code>{{ s.condition }}</code><br><span class="muted">confirm {{ s.confirm_days }}d · clear: {{ s.clear_rule }}</span><br>
+        <span class="muted">inputs as of: {{ s.inputs | join(', ') }}</span></td>
+      <td>{% if s.active %}<span class="chip active">active</span>{% elif s.status == 'unavailable' %}<span class="chip">unavailable</span>{% else %}<span class="chip">inactive</span>{% endif %}
+        {% if s.stale %}<span class="chip stale">stale</span>{% endif %}{% if s.note %}<br><span class="small muted">{{ s.note }}</span>{% endif %}</td>
+      <td class="n">{% if s.restricted_value %}<span class="chip restricted">restricted</span>{% else %}{{ s.lhs_value | num(3) }}{% endif %}</td>
+      <td class="n">{% if s.threshold is not none %}{{ s.threshold }}{% else %}–{% endif %}</td>
+      <td class="n">{% if s.restricted_value %}–{% else %}{{ s.distance | num(3, true) }}{% endif %}</td>
+      <td class="small n">{{ s.last_triggered or '–' }}<br>{{ s.last_cleared or '–' }}</td>
+      <td class="small">{% for k, v in s.lr.items() %}{{ k }} {{ v }}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<h2>Trigger history</h2>
+<div class="card scroll"><table>
+  <thead><tr><th>Date</th><th>Signpost</th><th>Event</th><th></th></tr></thead>
+  <tbody>
+  {% for e in events %}
+    <tr><td>{{ e.as_of }}</td><td><a href="#{{ e.signpost_id }}">{{ e.signpost_id }}</a></td><td>{{ e.event }}</td>
+      <td class="small muted">{% if e.backfilled %}backfilled (no alert){% endif %}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">No events yet.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

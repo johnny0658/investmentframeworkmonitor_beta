@@ -16,6 +16,8 @@ dependencies = [
   "pyyaml>=6",
   "pandas_market_calendars>=4.4",
   "cryptography>=42",
+  "jinja2>=3.1",
+  "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -29,7 +31,7 @@ framework-monitor = "framework_monitor.cli:main"
 include = ["framework_monitor*"]
 
 [tool.setuptools.package-data]
-framework_monitor = ["config/*.yaml", "manual/*.csv", "tests/fixtures/**/*"]
+framework_monitor = ["config/*.yaml", "manual/*.csv", "outputs/site/templates/*", "tests/fixtures/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["framework_monitor/tests"]

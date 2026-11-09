@@ -128,3 +128,11 @@ def test_seed_history_and_summary(store, cfg):
     assert "## Scenario probabilities" in md and "High-yield stress" in md
     hy_line = next(line for line in md.splitlines() if line.startswith("| High-yield stress"))
     assert "restricted" in hy_line and "4.2" not in hy_line  # raw ICE value never printed
+
+
+def test_seeds_from_older_engine_are_redone(store, cfg):
+    assert seed_history(store, cfg, dt.date(2026, 11, 9), 5) == 5
+    store.con.execute("UPDATE engine_runs SET engine_version = '2'")  # pretend: seeded by older logic
+    persist(store, cfg, compute(store, cfg, END, mode="latest"), run_id="live")  # live row: kept as is
+    store.con.execute("UPDATE engine_runs SET engine_version = '2' WHERE run_id = 'live'")
+    assert seed_history(store, cfg, dt.date(2026, 11, 9), 5) == 4  # 4 old seeds redone, the live day kept

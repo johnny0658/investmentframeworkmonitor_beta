@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS signpost_states (
 CREATE TABLE IF NOT EXISTS signpost_events (
     as_of DATE, signpost_id VARCHAR, event VARCHAR, run_id VARCHAR);
 CREATE TABLE IF NOT EXISTS engine_runs (
-    as_of DATE, knowledge_date DATE, mode VARCHAR, run_id VARCHAR);
+    as_of DATE, knowledge_date DATE, mode VARCHAR, run_id VARCHAR, engine_version VARCHAR);
 CREATE TABLE IF NOT EXISTS scenario_probs (
     as_of DATE, scenario_id VARCHAR, prior DOUBLE, multiplier DOUBLE, posterior DOUBLE, final DOUBLE, run_id VARCHAR);
 CREATE TABLE IF NOT EXISTS alerts (
@@ -315,6 +315,10 @@ class Store:
         if df.empty:
             return
         cols = [c[0] for c in self.con.execute(f"DESCRIBE {name}").fetchall()]
+        df = df.copy()
+        for c in cols:  # snapshots written before a column was added
+            if c not in df.columns:
+                df[c] = None
         self.con.register("_load", df[cols])
         self.con.execute(f"INSERT INTO {name} SELECT * FROM _load")
         self.con.unregister("_load")

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ row.name }} · Framework Monitor{% endblock %}
+{% block content %}
+<p class="small"><a href="../index.html">← Home</a> · Layer {{ row.layer }}</p>
+<div class="grid g2">
+  <section class="card">
+    <h3>{{ row.name }}</h3>
+    {% if row.question %}<p class="muted small">{{ row.question }}</p>{% endif %}
+    <div class="big t-{{ row.final_score | tone }}">{{ row.final_score | num(2, true) }}</div>
+    <table class="small"><tbody>
+      <tr><td>Computed score</td><td class="n">{{ row.computed_score | num(2, true) }}</td></tr>
+      <tr><td>Confidence (freshness × agreement)</td><td class="n">{{ row.confidence | num }} = {{ row.freshness | num }} × {{ row.agreement | num }}</td></tr>
+      <tr><td>Signals used</td><td class="n">{{ row.n_signals }}</td></tr>
+      <tr><td>1 week ago</td><td class="n">{{ row.score_1w | num(2, true) }}</td></tr>
+    </tbody></table>
+    <p class="small muted">As of {{ as_of }}. Score = weighted mean of the signals below (weights from indicators.yaml).</p>
+  </section>
+  <section class="card">
+    <h3>My override</h3>
+    {% if judgement %}
+      <table class="small"><tbody>
+        <tr><td>Score</td><td class="n">{{ judgement.score | num(1, true) }}</td></tr>
+        <tr><td>Confidence</td><td class="n">{{ judgement.confidence | num }}</td></tr>
+        <tr><td>Expires</td><td class="n">{{ judgement.expires }}{% if row.override_expired %} <span class="chip stale">expired, dropped</span>{% endif %}</td></tr>
+        <tr><td>Gap vs computed</td><td class="n">{{ row.gap | num(2, true) }}</td></tr>
+      </tbody></table>
+      <p class="small">“{{ judgement.reason }}”</p>
+    {% else %}<p class="muted small">None. Add one in <code>config/judgements.yaml</code>.</p>{% endif %}
+  </section>
+</div>
+
+<h2>Indicators</h2>
+<div class="card scroll"><table>
+  <thead><tr><th>Indicator</th><th>Source</th><th class="n">As of</th><th class="n">Value</th><th class="n">Transformed</th>
+    <th class="n">z</th><th class="n">Signal</th><th class="n">Weight</th><th>Fresh</th></tr></thead>
+  <tbody>
+  {% for i in indicators %}
+    <tr{% if not i.enabled %} class="muted"{% endif %}>
+      <td><b>{{ i.name }}</b><br><code>{{ i.indicator_id }}</code> {% if i.proxy %}<span class="chip">proxy</span>{% endif %}
+        {% if not i.enabled %}<span class="chip">later phase</span>{% endif %}</td>
+      <td class="small">{% if i.source_url %}<a href="{{ i.source_url }}">{{ i.source_label }}</a>{% else %}{{ i.source_label }}{% endif %}<br><span class="muted">{{ i.transform }} · {{ i.frequency }} · {{ i.units }}</span></td>
+      <td class="n">{{ i.obs_date or '–' }}</td>
+      <td class="n">{% if i.licence == 'restricted' %}<span class="chip restricted">restricted</span>{% else %}{{ i.raw | num(3) }}{% endif %}</td>
+      <td class="n">{% if i.licence == 'restricted' %}–{% else %}{{ i.transformed | num(3) }}{% endif %}</td>
+      <td class="n">{% if i.percentile is not none %}p{{ (100 * i.percentile) | round(0) | int }}{% else %}{{ i.z | num(2, true) }}{% endif %}</td>
+      <td class="n score t-{{ i.signal | tone }}">{{ i.signal | num(2, true) }}</td>
+      <td class="n">{{ i.weight | num }}</td>
+      <td>{% if i.obs_date %}{% if i.fresh %}yes{% else %}<span class="chip stale">stale</span>{% endif %}{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="small muted">Signal = clip(direction × z, −2, +2); z against the trailing 3 years (10 for monthly and slower series); “p” = percentile rank. Weight 0 = monitored only.</p>
+
+{% if charts %}
+<h2>5-year history</h2>
+<div class="grid g2">
+  {% for c in charts %}
+    <section class="card"><h3>{{ c.indicator_id }}</h3>
+      <p class="small muted">{% if c.raw is defined %}Value ({{ c.units }}) and signal{% elif c.indexed is defined %}Indexed to 100 (licence: no raw prices) and signal{% else %}z-score and signal only (raw values licence-restricted){% endif %}</p>
+      <div class="chart" id="chart-{{ c.indicator_id }}"></div></section>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="chart-data">{{ charts | tojson_safe }}</script>
+<script>
+(function () {
+  if (!window.Plotly) return;
+  JSON.parse(document.getElementById("chart-data").textContent).forEach(function (c) {
+    var main = c.raw !== undefined ? {y: c.raw, name: "value"} : c.indexed !== undefined ? {y: c.indexed, name: "indexed"} : {y: c.z, name: "z-score"};
+    var traces = [{x: c.dates, y: main.y, name: main.name, mode: "lines", connectgaps: true, line: {color: css("--accent")}}];
+    if (c.signal && c.signal.some(function (v) { return v !== null; }))
+      traces.push({x: c.dates, y: c.signal, name: "signal", mode: "lines", connectgaps: true, yaxis: "y2", line: {color: css("--neg1"), width: 1}});
+    Plotly.newPlot("chart-" + c.indicator_id, traces, baseLayout({
+      yaxis2: {overlaying: "y", side: "right", range: [-2.2, 2.2], showgrid: false, zeroline: false}}),
+      {displayModeBar: false, responsive: true});
+  });
+})();
+</script>
+{% endblock %}

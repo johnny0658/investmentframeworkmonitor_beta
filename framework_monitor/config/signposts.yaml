@@ -6,7 +6,12 @@
 #   pct_change(x, n)  x / x[n observations earlier] - 1
 #   abs, min, max
 # Windows count observations of that series (trading days for daily series).
-# `confirm_days` = the condition must hold on that many consecutive observations.
+# `confirm_days` = the condition must hold on that many consecutive observations
+#                  before the signpost turns active (default 1).
+# `clear_days`   = once active, it clears only after the clear condition has held
+#                  that many consecutive observations (default 3: hysteresis, so a
+#                  value hovering at the line does not flap on and off).
+# `clear_condition` = optional level-based exit; default is NOT condition.
 #
 # Units: spreads and yields are in percent (400bp = 4.00).
 #
@@ -58,6 +63,7 @@
   name: Oil shock
   family: oil
   condition: "brent > 110"
+  clear_condition: "brent < 105"   # level-based exit: clears after 3 days below $105
   lr: {base: 0.8, A: 0.8, B: 0.9, C: 1.0, D: 3.0}
 
 - id: hike_priced

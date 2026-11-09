@@ -22,10 +22,17 @@ on:
         description: "Start a new private store if none can be restored (first run only!)"
         type: boolean
         default: false
+      force_signpost:
+        description: "Alert self-test: treat this signpost id as active (e.g. oil_shock). Leave blank to clear."
+        required: false
+        default: ""
 
 permissions:
   contents: write   # commit public Parquet + health report
   actions: read     # find the previous run's private-store artifact
+  issues: write     # alert issues (FR-23, FR-24)
+  pages: write      # deploy the dashboard (FR-16)
+  id-token: write   # required by actions/deploy-pages
 
 concurrency:
   group: framework-monitor
@@ -35,6 +42,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      built: ${{ steps.publish.outputs.built }}
     env:
       FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
@@ -157,6 +166,19 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
+      - name: Build dashboard, CSVs and Excel (licensing-checked)
+        id: publish
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          python -m framework_monitor.cli publish
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload dashboard for GitHub Pages
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
       - name: Licensing guard
         if: steps.gate.outputs.skip != 'true'
         run: python -m framework_monitor.cli guard
@@ -178,3 +200,28 @@ jobs:
           done
           echo "::error::push failed after 4 attempts"
           exit 1
+
+      - name: Alerts (GitHub issues)
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force_signpost }}
+        run: |
+          args=""
+          if [ -n "$FORCE" ]; then
+            case "$FORCE" in *[!a-z0-9_]*) echo "::error::invalid signpost id"; exit 1;; esac
+            args="--force $FORCE"
+          fi
+          python -m framework_monitor.cli alert $args
+
+  deploy:
+    needs: run
+    if: needs.run.outputs.built == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
