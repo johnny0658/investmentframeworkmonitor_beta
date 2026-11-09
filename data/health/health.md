@@ -74,7 +74,7 @@
 | `vix` | fred | restricted | 1990-01-02 | 2026-11-05 | 9311 | 4 |  | 0 |  | ok |
 | `vix3m` | fred | restricted | 2007-12-04 | 2026-11-05 | 4761 | 4 |  | 0 |  | ok |
 | `inda` | prices | restricted | 2012-02-03 | 2026-11-06 | 3712 | 3 |  | 0 |  | ok |
-| `nifty` | prices | restricted | 2007-09-17 | 2026-11-09 | 4697 | 0 |  | 0 |  | ok |
+| `nifty` | prices | restricted | 2007-09-17 | 2026-11-09 | 4697 | 0 |  | 1 |  | ok |
 | `hsi` | prices | restricted | 1990-01-02 | 2026-11-09 | 9095 | 0 |  | 0 |  | ok |
 | `kweb` | prices | restricted | 2013-08-01 | 2026-11-06 | 3338 | 3 |  | 0 |  | ok |
 | `tchi` | prices | restricted | 2022-02-01 | 2026-11-06 | 1197 | 3 |  | 0 |  | ok |
