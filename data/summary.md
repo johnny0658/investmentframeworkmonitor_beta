@@ -35,7 +35,7 @@ My regime probabilities (6 months): goldilocks 25.0%, reflation 25.0%, stagflati
 | 2 | ai_stack | **+0.89** | → | 0.75 | 1.00 | +0.75 | 2 |  |
 | 2 | ai_bottlenecks_credit | **-0.72** | → | 0.44 | 1.00 | +0.44 | 6 |  |
 | 3 | options_pricing | **-2.00** | ↓ | 1.00 | 1.00 | +1.00 | 2 |  |
-| 5 | defensives | **+0.35** | → | 1.00 | 1.00 | +1.00 | 1 |  |
+| 5 | defensives | **+0.32** | → | 1.00 | 1.00 | +1.00 | 1 |  |
 
 Rows with no data yet (sources in later phases): ai_vs_non_ai, tech_competitiveness, value_capture_tax, future_tech, valuations, positioning, capital_flows, calendar, policy, crash_signals, portfolio
 
@@ -50,7 +50,7 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | CCC blowout | credit | inactive | restricted | 15 | restricted |
 | Investment-grade drift | credit | inactive | restricted | 1.1 | restricted |
 | Vol inversion | volatility | inactive | 1.103 | 1 | -0.103 |
-| Bonds stop hedging | rates | inactive | 0.091 | 0.3 | +0.209 |
+| Bonds stop hedging | rates | inactive | 0.096 | 0.3 | +0.204 |
 | Oil shock | oil | active | 107.030 | 110 | +2.970 |
 | Hike priced | rates | unavailable | - | 0.7 | - |
 | Real yield squeeze | rates | active | 2.600 | 2.5 | -0.100 |

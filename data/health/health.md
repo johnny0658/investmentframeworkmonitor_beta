@@ -5,7 +5,7 @@
 - Stale: 0 
 - Failing this run: 0 
 - Source alerts (failed 3+ runs in a row): none
-- Values held out of scoring pending confirmation: 0
+- Values held out of scoring pending confirmation: 25
 
 | Indicator | Source | Licence | First | Last | Obs | Age (d) | Stale | Revisions | Held | Fetch |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -79,13 +79,13 @@
 | `kweb` | prices | restricted | 2013-08-01 | 2026-11-06 | 3338 | 3 |  | 0 |  | ok |
 | `tchi` | prices | restricted | 2022-02-01 | 2026-11-06 | 1197 | 3 |  | 0 |  | ok |
 | `ewy` | prices | restricted | 2000-05-12 | 2026-11-06 | 6662 | 3 |  | 0 |  | ok |
-| `ewt` | prices | restricted | 2000-06-23 | 2026-11-06 | 6633 | 3 |  | 0 |  | ok |
-| `ewj` | prices | restricted | 1996-04-01 | 2026-11-06 | 7701 | 3 |  | 0 |  | ok |
-| `ezu` | prices | restricted | 2001-01-02 | 2026-11-06 | 6501 | 3 |  | 0 |  | ok |
-| `gld` | prices | restricted | 2004-11-18 | 2026-11-06 | 5527 | 3 |  | 0 |  | ok |
-| `tlt` | prices | restricted | 2002-07-26 | 2026-11-06 | 6111 | 3 |  | 0 |  | ok |
-| `xlp` | prices | restricted | 1998-12-22 | 2026-11-06 | 7012 | 3 |  | 0 |  | ok |
-| `xlu` | prices | restricted | 1998-12-22 | 2026-11-06 | 7012 | 3 |  | 0 |  | ok |
-| `iwd` | prices | restricted | 2000-05-26 | 2026-11-06 | 6652 | 3 |  | 0 |  | ok |
-| `iwf` | prices | restricted | 2000-05-26 | 2026-11-06 | 6652 | 3 |  | 0 |  | ok |
-| `qual` | prices | restricted | 2013-07-18 | 2026-11-06 | 3348 | 3 |  | 0 |  | ok |
+| `ewt` | prices | restricted | 2000-06-23 | 2026-11-06 | 6633 | 3 |  | 60 | 12 | ok |
+| `ewj` | prices | restricted | 1996-04-01 | 2026-11-06 | 7701 | 3 |  | 62 | 1 | ok |
+| `ezu` | prices | restricted | 2001-01-02 | 2026-11-06 | 6501 | 3 |  | 62 |  | ok |
+| `gld` | prices | restricted | 2004-11-18 | 2026-11-06 | 5527 | 3 |  | 63 | 4 | ok |
+| `tlt` | prices | restricted | 2002-07-26 | 2026-11-06 | 6111 | 3 |  | 62 |  | ok |
+| `xlp` | prices | restricted | 1998-12-22 | 2026-11-06 | 7012 | 3 |  | 62 | 2 | ok |
+| `xlu` | prices | restricted | 1998-12-22 | 2026-11-06 | 7012 | 3 |  | 62 |  | ok |
+| `iwd` | prices | restricted | 2000-05-26 | 2026-11-06 | 6652 | 3 |  | 63 | 2 | ok |
+| `iwf` | prices | restricted | 2000-05-26 | 2026-11-06 | 6652 | 3 |  | 63 | 3 | ok |
+| `qual` | prices | restricted | 2013-07-18 | 2026-11-06 | 3348 | 3 |  | 63 | 1 | ok |
