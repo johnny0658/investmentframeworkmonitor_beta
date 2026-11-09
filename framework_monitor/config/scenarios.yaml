@@ -10,6 +10,14 @@
 confirmed_on: 2026-11-08
 shrinkage_to_prior: 0.2   # final = 0.8 x posterior + 0.2 x prior
 
+# P(each growth x inflation regime box in 6 months), summing to 1.
+# Placeholders: replace with my own judgement.
+regime_probs:
+  goldilocks: 0.25          # growth up, inflation down
+  reflation: 0.25           # growth up, inflation up
+  stagflation: 0.25         # growth down, inflation up
+  deflationary_bust: 0.25   # growth down, inflation down
+
 scenarios:
   - id: base
     name: Base

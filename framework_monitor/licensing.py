@@ -28,7 +28,12 @@ from framework_monitor.schemas import Config
 
 # Columns that carry raw source values. Derived columns (z, signal, score,
 # transformed, distance_pct ...) are allowed for restricted indicators.
-RAW_VALUE_COLUMNS = {"value", "raw", "raw_value", "close", "adj_close", "adjclose", "old_value", "new_value", "price", "level"}
+RAW_VALUE_COLUMNS = {
+    "value", "raw", "raw_value", "close", "adj_close", "adjclose", "old_value", "new_value", "price", "level",
+    # engine tables: a level-transformed value or a signpost's current value / distance
+    # to its threshold reveals the raw number just as well
+    "transformed", "lhs_value", "distance",
+}
 TABLE_SUFFIXES = {".parquet", ".csv", ".json"}
 _JSON_SCRIPT = re.compile(r"<script[^>]*type=[\"']application/json[\"'][^>]*>(.*?)</script>", re.S | re.I)
 
@@ -47,26 +52,36 @@ class Violation:
 
 
 def _table_violations(df: pd.DataFrame, public_ids: set[str], where: str) -> list[Violation]:
-    if "indicator_id" not in df.columns:
+    """Rows for a non-public indicator (by `indicator_id`) or marked `licence != public`
+    must not carry any raw-value column."""
+    if "indicator_id" not in df.columns and "licence" not in df.columns:
         return []
     raw_cols = [c for c in df.columns if c.lower() in RAW_VALUE_COLUMNS]
     if not raw_cols:
         return []
-    bad = df[~df["indicator_id"].isin(public_ids)]
+    mask = pd.Series(False, index=df.index)
+    if "indicator_id" in df.columns:
+        mask |= ~df["indicator_id"].isin(public_ids)
+    if "licence" in df.columns:
+        mask |= df["licence"].ne("public")
+    bad = df[mask]
     if bad.empty:
         return []
     has_raw = bad[raw_cols].notna().any(axis=1)
-    ids = sorted(bad.loc[has_raw, "indicator_id"].astype(str).unique())
-    return [Violation(where, f"raw values {raw_cols} for restricted/unknown indicators {ids}")] if ids else []
+    if not has_raw.any():
+        return []
+    key = "indicator_id" if "indicator_id" in df.columns else ("signpost_id" if "signpost_id" in df.columns else None)
+    ids = sorted(bad.loc[has_raw, key].astype(str).unique()) if key else [f"{int(has_raw.sum())} rows"]
+    return [Violation(where, f"raw values {raw_cols} for restricted/unknown {ids}")]
 
 
 def _walk_json(obj, public_ids: set[str], where: str, out: list[Violation]) -> None:
     if isinstance(obj, dict):
         ind = obj.get("indicator_id")
-        if isinstance(ind, str) and ind not in public_ids:
+        if (isinstance(ind, str) and ind not in public_ids) or obj.get("licence") == "restricted":
             raw = [k for k, v in obj.items() if k.lower() in RAW_VALUE_COLUMNS and v is not None]
             if raw:
-                out.append(Violation(where, f"raw values {raw} for restricted/unknown indicator {ind}"))
+                out.append(Violation(where, f"raw values {raw} for restricted/unknown {ind or obj.get('signpost_id')}"))
         for v in obj.values():
             _walk_json(v, public_ids, where, out)
     elif isinstance(obj, list):

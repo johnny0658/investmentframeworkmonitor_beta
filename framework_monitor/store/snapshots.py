@@ -23,8 +23,11 @@ from framework_monitor.schemas import Config
 from framework_monitor.settings import Paths
 from framework_monitor.store.db import Store
 
-PUBLIC_TABLES = ["runs", "fetch_log"]
-SPLIT_TABLES = ["quality_flags"]  # carry raw values -> split by licence
+PUBLIC_TABLES = ["runs", "fetch_log", "engine_runs", "row_scores", "regime", "scenario_probs", "signpost_events"]
+SPLIT_TABLES = ["quality_flags"]  # carry raw values -> split by indicator licence
+# Engine tables with a `licence` column: restricted rows are published with these
+# columns nulled (z-scores and signals stay public); full rows go to the private side.
+REDACT_TABLES = {"signals": ["raw", "transformed"], "signpost_states": ["lhs_value", "distance"]}
 
 
 def _public_ids(cfg: Config) -> set[str]:
@@ -89,6 +92,15 @@ def export(store: Store, cfg: Config, paths: Paths) -> dict[str, int]:
         _assert_public_safe(df, public_ids, name)
         written["public"] += _write(paths.public_parquet / f"{name}.parquet", df)
 
+    for name, cols in REDACT_TABLES.items():
+        df = store.table(name)
+        restricted = df["licence"].ne("public")
+        pub = df.copy()
+        pub.loc[restricted, cols] = None
+        _assert_public_safe(pub, public_ids, name)
+        written["public"] += _write(paths.public_parquet / f"{name}.parquet", pub)
+        written["private"] += _write(paths.private_parquet / f"{name}.parquet", df[restricted].reset_index(drop=True))
+
     for name in SPLIT_TABLES:
         df = store.table(name)
         is_pub = df["indicator_id"].isin(public_ids) if not df.empty else pd.Series(dtype=bool)
@@ -111,6 +123,16 @@ def load(store: Store, paths: Paths) -> dict[str, int]:
         obs = pd.concat(frames, ignore_index=True)
         store.load_table("observations", obs)
         counts["observations"] = len(obs)
+    for name in REDACT_TABLES:
+        pub_f, priv_f = paths.public_parquet / f"{name}.parquet", paths.private_parquet / f"{name}.parquet"
+        if not pub_f.exists():
+            continue
+        pub = pd.read_parquet(pub_f)
+        if priv_f.exists():  # full restricted rows replace their redacted public copies
+            pub = pd.concat([pub[pub["licence"].eq("public")], pd.read_parquet(priv_f)], ignore_index=True)
+        if not pub.empty:
+            store.load_table(name, pub)
+            counts[name] = len(pub)
     for name in PUBLIC_TABLES + SPLIT_TABLES:
         parts = [pd.read_parquet(p) for p in (paths.public_parquet / f"{name}.parquet", paths.private_parquet / f"{name}.parquet") if p.exists()]
         parts = [p for p in parts if not p.empty]

@@ -218,10 +218,26 @@ class Scenario(_Strict):
     shocks: dict[str, float] = Field(default_factory=dict)
 
 
+REGIME_BOXES = ("goldilocks", "reflation", "stagflation", "deflationary_bust")
+
+
 class ScenariosFile(_Strict):
     confirmed_on: dt.date
     shrinkage_to_prior: float = Field(ge=0, le=1)
     scenarios: list[Scenario]
+    # My P(each regime box in 6 months), shown beside the classifier (FR-13).
+    regime_probs: dict[str, float] | None = None
+
+    @field_validator("regime_probs")
+    @classmethod
+    def _regime(cls, v):
+        if v is None:
+            return v
+        if set(v) != set(REGIME_BOXES):
+            raise ValueError(f"regime_probs keys must be {list(REGIME_BOXES)}")
+        if abs(sum(v.values()) - 1.0) > 1e-6:
+            raise ValueError("regime_probs must sum to 1.0")
+        return v
 
     @model_validator(mode="after")
     def _sum_to_one(self) -> "ScenariosFile":

@@ -6,9 +6,9 @@ The spec is [docs/framework-monitor-prd.md](docs/framework-monitor-prd.md).
 
 Not investment advice. This is a personal decision-support tool.
 
-**Status: Phase 1 (data spine).** See [docs/phase-1-report.md](docs/phase-1-report.md).
+**Status: Phase 2 (scoring engine).** Latest output: [data/summary.md](data/summary.md). Reports: [Phase 1](docs/phase-1-report.md), [Phase 2](docs/phase-2-report.md).
 
-## How it works (Phase 1)
+## How it works
 
 ```
 indicators.yaml ──► fetchers (fred, alfred, treasury_fiscal, prices, manual)
@@ -21,6 +21,9 @@ indicators.yaml ──► fetchers (fred, alfred, treasury_fiscal, prices, manua
      data/private/          (restricted raw values: encrypted Actions artifact, never committed)
      data/health/           (health report: dates, counts, statuses, no values)
                        │
+                       ▼
+                 engine: transforms -> signals -> row scores -> regime -> signposts -> scenario probabilities
+                       │  results per date in engine tables + data/summary.md
                        ▼
                  licensing guard: fails the run if a restricted raw value is public
 ```
@@ -61,6 +64,14 @@ framework-monitor run-all           # rebuild -> fetch -> check -> snapshot -> g
 python -m pytest -q                 # offline tests on recorded fixtures
 ```
 
+```bash
+framework-monitor compute                                   # score today -> data/summary.md
+```
+
+```bash
+framework-monitor replay --start 2025-03-01 --end 2025-05-30  # back-test signposts over a window
+```
+
 Other commands: `fetch`, `check`, `snapshot`, `guard`, `verify-series`,
 `rebuild`, `should-run`, `private-store pack|unpack`. Run `framework-monitor -h` for the full list.
 
@@ -71,6 +82,8 @@ framework_monitor/
   config/        indicators.yaml (the only place a series is defined), rows, signposts, scenarios, judgements
   fetchers/      one module per source: fetch(series, start, end) -> DataFrame
   store/         DuckDB bitemporal store, Parquet snapshots, encrypted private store
+  engine/        transforms, signals, rows, regime, scenarios, formulas, compute
+  outputs/       summary.md renderer (dashboard in Phase 3)
   quality.py     data-quality checks + health report
   licensing.py   licensing guard
   verify.py      FRED series / units / history verification

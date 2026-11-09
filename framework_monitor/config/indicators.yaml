@@ -205,7 +205,7 @@ indicators:
   weight: 0
   licence: public
   notes: Benchmark for rolling 120-day AI beta per holding (FR-12, Phase 2)
-- {id: spy_ai_beta_120d, name: SPY beta to AI basket (120d), source: derived, formula: "rolling_beta(spy, ai_basket, 120)", units: ratio, <<: *daily, direction: 0, row: ai_vs_non_ai, layer: 2, weight: 0, licence: public}
+- {id: spy_ai_beta_120d, name: SPY beta to AI basket (120d), source: derived, formula: "rolling_beta(pct_change(spy, 1), pct_change(ai_basket, 1), 120)", units: ratio, <<: *daily, direction: 0, row: ai_vs_non_ai, layer: 2, weight: 0, licence: public}
 
 # ---------------------------------------------------------------- AI bottlenecks and credit
 - {id: hy_oas, name: High-yield OAS (ICE BofA), source: fred, series: BAMLH0A0HYM2, units: percent, <<: *daily, stale_after_days: 4, direction: -1, row: ai_bottlenecks_credit, layer: 2, weight: 0.30, licence: restricted, catchup: true, notes: "ICE licence: raw values stay in the private store. FRED now serves only ~3 years of history."}

@@ -12,9 +12,11 @@ Phase 1 commands:
   guard           licensing guard; exit 1 on any restricted raw value in public paths
   verify-series   check FRED IDs, units, history length -> data/health/series-verification.md
   private-store   pack | unpack the encrypted private store
-  run-all         rebuild -> fetch -> check -> snapshot -> guard
+  compute         run the scoring engine for one date (default today) -> data/summary.md
+  replay          run the engine over a date range (back-tests, history)
+  run-all         rebuild -> fetch -> check -> compute -> snapshot -> guard
 
-compute, publish and alert arrive in Phases 2 and 3.
+publish and alert arrive in Phase 3.
 """
 
 from __future__ import annotations
@@ -156,13 +158,78 @@ def cmd_private_store(args, paths) -> int:
     return 0
 
 
+def cmd_compute(args, paths) -> int:
+    from framework_monitor.engine.compute import compute, persist, seed_history
+    from framework_monitor.outputs.summary import render
+
+    cfg = load_config(args.config_dir)
+    now = dt.datetime.now(dt.UTC)
+    knowledge_date = now.date()
+    if args.as_of:
+        as_of = args.as_of
+        knowledge_date = None if args.as_of < now.date() else knowledge_date  # past date: as known then
+    elif args.for_run:
+        as_of = trading_calendar.session_for_run(args.for_run, now)
+    else:
+        as_of = now.date()
+    store = _open_store(paths, fresh=False)
+    try:
+        seeded = seed_history(store, cfg, as_of, args.seed_sessions) if args.seed_sessions else 0
+        run_id = store.start_run("compute")
+        r = compute(store, cfg, as_of, mode=args.mode, knowledge_date=knowledge_date)
+        events = persist(store, cfg, r, run_id)
+        store.finish_run(run_id)
+        md = render(store, cfg, r)
+    finally:
+        store.close()
+    paths.data_dir.mkdir(parents=True, exist_ok=True)
+    (paths.data_dir / "summary.md").write_text(md)
+    if seeded:
+        print(f"seeded {seeded} earlier sessions (latest-vintage mode)")
+    for e in events:
+        print(f"signpost {e['signpost_id']} {e['event']}")
+    _summary(md.split("## Rows")[0].strip())
+    return 0
+
+
+def cmd_replay(args, paths) -> int:
+    from framework_monitor.engine.compute import compute, persist, sessions_between
+
+    cfg = load_config(args.config_dir)
+    store = _open_store(paths, fresh=False)
+    n = 0
+    try:
+        for d in sessions_between(args.start, args.end):
+            persist(store, cfg, compute(store, cfg, d, mode=args.mode), run_id=f"replay-{args.mode}")
+            n += 1
+        trig = store.con.execute(
+            "SELECT as_of, signpost_id, event FROM signpost_events WHERE as_of BETWEEN ? AND ? ORDER BY as_of",
+            [args.start, args.end]).fetchall()
+    finally:
+        store.close()
+    print(f"replayed {n} sessions {args.start}..{args.end} ({args.mode} vintages)")
+    for d, sp, ev in trig:
+        print(f"  {d} {sp} {ev}")
+    return 0
+
+
 def cmd_run_all(args, paths) -> int:
     args.fresh = True
-    for step in (cmd_fetch, cmd_check, cmd_snapshot, cmd_guard):
+    args.as_of, args.seed_sessions = None, 0
+    for step in (cmd_fetch, cmd_check, _compute_step, cmd_snapshot, cmd_guard):
         rc = step(args, paths)
         if rc:
             return rc
     return 0
+
+
+def _compute_step(args, paths) -> int:
+    ns = argparse.Namespace(**{**vars(args), "mode": "known"})
+    return cmd_compute(ns, paths)
+
+
+def _date(s: str) -> dt.date:
+    return dt.date.fromisoformat(s)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -188,6 +255,18 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--only", nargs="+", help="limit to these indicator ids")
         sp.add_argument("--fresh", action="store_true", help="rebuild DuckDB from Parquet first")
     add("check", cmd_check, "quality checks + health report")
+    sp = add("compute", cmd_compute, "run the scoring engine")
+    sp.add_argument("--as-of", type=_date, default=None, help="YYYY-MM-DD (default: today, UTC)")
+    sp.add_argument("--for-run", choices=["main", "catchup"], default=None,
+                    help="score the US session this scheduled run is for (catch-up = previous session)")
+    sp.add_argument("--mode", choices=["known", "latest"], default="known",
+                    help="known = only vintages known on as_of (reproducible); latest = today's values")
+    sp.add_argument("--seed-sessions", type=int, default=0,
+                    help="first fill this many earlier NYSE sessions that have no results yet")
+    sp = add("replay", cmd_replay, "run the engine over a date range")
+    sp.add_argument("--start", type=_date, required=True)
+    sp.add_argument("--end", type=_date, required=True)
+    sp.add_argument("--mode", choices=["known", "latest"], default="latest")
     add("snapshot", cmd_snapshot, "write Parquet snapshots")
     add("guard", cmd_guard, "licensing guard")
     add("verify-series", cmd_verify_series, "verify FRED IDs, units, history")

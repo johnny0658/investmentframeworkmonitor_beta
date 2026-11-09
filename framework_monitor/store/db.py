@@ -57,16 +57,31 @@ CREATE TABLE IF NOT EXISTS quality_flags (
     confirmed_at TIMESTAMP
 );
 
--- Derived tables (FR-10). Created now so the schema is fixed; filled from Phase 2.
+-- Derived tables (FR-10), filled by the engine (Phase 2). One set of rows per
+-- as_of date; recomputing a date replaces its rows. `licence` marks rows whose
+-- raw-value columns must be redacted before anything is published.
 CREATE TABLE IF NOT EXISTS signals (
-    indicator_id VARCHAR, as_of DATE, raw DOUBLE, transformed DOUBLE, z DOUBLE, signal DOUBLE, run_id VARCHAR);
+    as_of DATE, indicator_id VARCHAR, row_id VARCHAR, obs_date DATE,
+    raw DOUBLE, transformed DOUBLE, percentile DOUBLE, z DOUBLE, signal DOUBLE,
+    weight DOUBLE, fresh BOOLEAN, licence VARCHAR, run_id VARCHAR);
 CREATE TABLE IF NOT EXISTS row_scores (
-    row_id VARCHAR, as_of DATE, score DOUBLE, confidence DOUBLE, freshness DOUBLE, agreement DOUBLE,
-    override_score DOUBLE, override_confidence DOUBLE, run_id VARCHAR);
-CREATE TABLE IF NOT EXISTS scenario_probs (
-    as_of DATE, scenario_id VARCHAR, prior DOUBLE, posterior DOUBLE, final DOUBLE, run_id VARCHAR);
+    as_of DATE, row_id VARCHAR, layer INTEGER,
+    computed_score DOUBLE, confidence DOUBLE, freshness DOUBLE, agreement DOUBLE, n_signals INTEGER,
+    override_score DOUBLE, override_confidence DOUBLE, override_reason VARCHAR,
+    override_active BOOLEAN, override_expired BOOLEAN,
+    final_score DOUBLE, final_confidence DOUBLE, run_id VARCHAR);
+CREATE TABLE IF NOT EXISTS regime (
+    as_of DATE, box VARCHAR, growth_up BOOLEAN, inflation_up BOOLEAN,
+    growth_detail VARCHAR, core_pce_3m_ann DOUBLE, core_pce_12m DOUBLE, run_id VARCHAR);
+CREATE TABLE IF NOT EXISTS signpost_states (
+    as_of DATE, signpost_id VARCHAR, family VARCHAR, status VARCHAR, active BOOLEAN, stale BOOLEAN,
+    lhs_value DOUBLE, threshold DOUBLE, distance DOUBLE, licence VARCHAR, run_id VARCHAR);
 CREATE TABLE IF NOT EXISTS signpost_events (
-    signpost_id VARCHAR, as_of DATE, active BOOLEAN, event VARCHAR, run_id VARCHAR);
+    as_of DATE, signpost_id VARCHAR, event VARCHAR, run_id VARCHAR);
+CREATE TABLE IF NOT EXISTS engine_runs (
+    as_of DATE, knowledge_date DATE, mode VARCHAR, run_id VARCHAR);
+CREATE TABLE IF NOT EXISTS scenario_probs (
+    as_of DATE, scenario_id VARCHAR, prior DOUBLE, multiplier DOUBLE, posterior DOUBLE, final DOUBLE, run_id VARCHAR);
 CREATE TABLE IF NOT EXISTS alerts (
     alert_key VARCHAR, kind VARCHAR, opened_at TIMESTAMP, closed_at TIMESTAMP, issue_number INTEGER, detail VARCHAR);
 CREATE TABLE IF NOT EXISTS theses (
@@ -78,8 +93,10 @@ CREATE TABLE IF NOT EXISTS forecasts (
 
 TABLES = [
     "observations", "runs", "fetch_log", "quality_flags",
-    "signals", "row_scores", "scenario_probs", "signpost_events", "alerts", "theses", "forecasts",
+    "engine_runs", "signals", "row_scores", "regime", "signpost_states", "signpost_events", "scenario_probs",
+    "alerts", "theses", "forecasts",
 ]
+ENGINE_TABLES = ["engine_runs", "signals", "row_scores", "regime", "signpost_states", "signpost_events", "scenario_probs"]
 
 
 @dataclass
@@ -104,7 +121,21 @@ class Store:
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self.con = duckdb.connect(self.path)
+        self._migrate_engine_tables()
         self.con.execute(SCHEMA)
+
+    def _migrate_engine_tables(self) -> None:
+        """Engine tables are always recomputable, so if an existing database
+        has an older column layout, drop the table and let SCHEMA recreate it."""
+        expected = duckdb.connect(":memory:")
+        expected.execute(SCHEMA)
+        for name in ENGINE_TABLES:
+            want = [c[0] for c in expected.execute(f"DESCRIBE {name}").fetchall()]
+            exists = self.con.execute(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name = ?", [name]).fetchone()[0]
+            if exists and [c[0] for c in self.con.execute(f"DESCRIBE {name}").fetchall()] != want:
+                self.con.execute(f"DROP TABLE {name}")
+        expected.close()
 
     def close(self) -> None:
         self.con.close()
@@ -164,6 +195,39 @@ class Store:
     def series(self, indicator_id: str, as_of: dt.date | None = None) -> pd.Series:
         df = self.latest_frame(indicator_id, as_of)
         return pd.Series(df["value"].to_numpy(), index=pd.Index(df["obs_date"], name="obs_date"), name=indicator_id, dtype=float)
+
+    def all_series(self, as_of: dt.date | None = None, vintage_as_of: dt.date | None = None) -> dict[str, pd.Series]:
+        """Every indicator's latest-known series in one query.
+
+        `as_of` truncates observation dates; `vintage_as_of` restricts to
+        vintages known on that date (bitemporal "what did I know").
+        """
+        conds, params = [], []
+        if vintage_as_of:
+            conds.append("vintage_date <= ?")
+            params.append(vintage_as_of)
+        if as_of:
+            conds.append("obs_date <= ?")
+            params.append(as_of)
+        where = ("WHERE " + " AND ".join(conds)) if conds else ""
+        df = self.con.execute(f"""
+            SELECT indicator_id, obs_date, value FROM (
+                SELECT indicator_id, obs_date, value,
+                       row_number() OVER (PARTITION BY indicator_id, obs_date ORDER BY vintage_date DESC, fetched_at DESC) AS rn
+                FROM observations {where}
+            ) WHERE rn = 1 ORDER BY indicator_id, obs_date
+        """, params).df()
+        out: dict[str, pd.Series] = {}
+        for ind_id, g in df.groupby("indicator_id", sort=False):
+            out[ind_id] = pd.Series(g["value"].to_numpy(dtype=float), index=pd.DatetimeIndex(g["obs_date"]), name=ind_id)
+        return out
+
+    def replace_rows(self, table: str, as_of: dt.date, df: pd.DataFrame) -> None:
+        """Replace one as_of date's rows in an engine table (recompute is idempotent)."""
+        if table not in ENGINE_TABLES:
+            raise ValueError(table)
+        self.con.execute(f"DELETE FROM {table} WHERE as_of = ?", [as_of])
+        self.load_table(table, df)
 
     def write_observations(self, indicator_id: str, df: pd.DataFrame, source: str, fetched_at: dt.datetime | None = None) -> WriteResult:
         """Append new and revised observations; unchanged ones are skipped."""
