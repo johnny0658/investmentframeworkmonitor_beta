@@ -32,10 +32,10 @@ My regime probabilities (6 months): goldilocks 25.0%, reflation 25.0%, stagflati
 | 1 | us_liquidity | **-0.11** | → | 0.73 | 1.00 | +0.73 | 9 |  |
 | 1 | rates_debt | **-0.52** | → | 0.30 | 1.00 | +0.30 | 15 |  |
 | 1 | global_liquidity_inflation | **+0.33** | → | 0.44 | 1.00 | +0.44 | 11 |  |
-| 2 | ai_stack | **+0.73** | ↓ | 0.63 | 1.00 | +0.63 | 2 |  |
-| 2 | ai_bottlenecks_credit | **-0.67** | → | 0.45 | 1.00 | +0.45 | 6 |  |
+| 2 | ai_stack | **+0.96** | → | 0.80 | 1.00 | +0.80 | 2 |  |
+| 2 | ai_bottlenecks_credit | **-0.55** | → | 0.46 | 1.00 | +0.46 | 6 |  |
 | 3 | options_pricing | **-1.96** | ↓ | 0.98 | 1.00 | +0.98 | 2 |  |
-| 5 | defensives | **+0.35** | → | 1.00 | 1.00 | +1.00 | 1 |  |
+| 5 | defensives | **+0.37** | → | 1.00 | 1.00 | +1.00 | 1 |  |
 
 Rows with no data yet (sources in later phases): ai_vs_non_ai, tech_competitiveness, value_capture_tax, future_tech, valuations, positioning, capital_flows, calendar, policy, crash_signals, portfolio
 
@@ -50,7 +50,7 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | CCC blowout | credit | inactive | restricted | 15 | restricted |
 | Investment-grade drift | credit | inactive | restricted | 1.1 | restricted |
 | Vol inversion | volatility | inactive | 1.042 | 1 | -0.042 |
-| Bonds stop hedging | rates | inactive | 0.090 | 0.3 | +0.210 |
+| Bonds stop hedging | rates | inactive | 0.086 | 0.3 | +0.214 |
 | Oil shock | oil | active | 107.030 | 110 | +2.970 |
 | Hike priced | rates | unavailable | - | 0.7 | - |
 | Real yield squeeze | rates | active | 2.630 | 2.5 | -0.130 |
@@ -58,7 +58,7 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | Bear steepener | rates | inactive | - | - | - |
 | Term premium jump | rates | inactive | 0.041 | 0.5 | +0.459 |
 | Capex cut | ai_fundamentals | unavailable | - | 2 | - |
-| Chips lead down | ai_fundamentals | active | -0.169 | -0.15 | -0.019 |
+| Chips lead down | ai_fundamentals | active | -0.147 | -0.15 | +0.003 |
 | Laggards decouple | flows | active | - | - | - |
 | Everything falls | flows | inactive | - | - | - |
 | Liquidity drain | liquidity | inactive | -0.008 | -0.05 | +0.042 |
