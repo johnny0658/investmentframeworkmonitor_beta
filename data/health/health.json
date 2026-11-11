@@ -8,7 +8,7 @@
     ],
     "failing": [],
     "source_alerts": [],
-    "held_values": 1,
+    "held_values": 0,
     "by_layer": {
       "1": 41,
       "2": 21,
@@ -1045,7 +1045,7 @@
       "stale_after_days": 5,
       "stale": false,
       "revisions": 0,
-      "held_values": 1,
+      "held_values": 0,
       "last_fetch_status": "ok",
       "last_fetch_at": "2026-11-11T02:03:28",
       "last_fetch_message": null,
@@ -1333,7 +1333,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-11T02:03:29",
+      "last_fetch_at": "2026-11-11T20:03:54",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
@@ -1355,7 +1355,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-11T02:03:29",
+      "last_fetch_at": "2026-11-11T20:03:55",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
@@ -1377,7 +1377,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-11T02:03:29",
+      "last_fetch_at": "2026-11-11T20:03:55",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
@@ -1399,7 +1399,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-11T02:03:30",
+      "last_fetch_at": "2026-11-11T20:03:55",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false

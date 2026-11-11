@@ -5,7 +5,7 @@
 - Stale: 1 bank_credit
 - Failing this run: 0 
 - Source alerts (failed 3+ runs in a row): none
-- Values held out of scoring pending confirmation: 1
+- Values held out of scoring pending confirmation: 0
 
 | Indicator | Source | Licence | First | Last | Obs | Age (d) | Stale | Revisions | Held | Fetch |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -52,7 +52,7 @@
 | `wti` | fred | public | 1986-01-02 | 2026-11-03 | 9537 | 8 |  | 0 |  | ok |
 | `smh` | prices | restricted | 2000-06-05 | 2026-11-10 | 6649 | 1 |  | 0 |  | ok |
 | `soxx` | prices | restricted | 2001-07-13 | 2026-11-10 | 6370 | 1 |  | 0 |  | ok |
-| `nvda` | prices | restricted | 1999-01-22 | 2026-11-10 | 6994 | 1 |  | 0 | 1 | ok |
+| `nvda` | prices | restricted | 1999-01-22 | 2026-11-10 | 6994 | 1 |  | 0 |  | ok |
 | `vrt` | prices | restricted | 2018-07-30 | 2026-11-10 | 2083 | 1 |  | 0 |  | ok |
 | `ceg` | prices | restricted | 2022-02-02 | 2026-11-10 | 1198 | 1 |  | 0 |  | ok |
 | `grid` | prices | restricted | 2009-11-17 | 2026-11-10 | 4271 | 1 |  | 0 |  | ok |
