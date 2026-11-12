@@ -1,4 +1,4 @@
-# Framework monitor, as of 2026-11-10
+# Framework monitor, as of 2026-11-11
 
 > Not investment advice. Priors and likelihood ratios are still the PRD placeholders; indicator weights and directions are first-pass defaults.
 
@@ -32,10 +32,10 @@ My regime probabilities (6 months): goldilocks 25.0%, reflation 25.0%, stagflati
 | 1 | us_liquidity | **-0.11** | → | 0.62 | 0.85 | +0.73 | 9 |  |
 | 1 | rates_debt | **-0.47** | → | 0.27 | 1.00 | +0.27 | 15 |  |
 | 1 | global_liquidity_inflation | **+0.30** | → | 0.43 | 1.00 | +0.43 | 11 |  |
-| 2 | ai_stack | **+0.92** | → | 0.77 | 1.00 | +0.77 | 2 |  |
-| 2 | ai_bottlenecks_credit | **-0.54** | → | 0.45 | 1.00 | +0.45 | 6 |  |
-| 3 | options_pricing | **-0.81** | ↑ | 0.91 | 1.00 | +0.91 | 2 |  |
-| 5 | defensives | **+0.37** | → | 1.00 | 1.00 | +1.00 | 1 |  |
+| 2 | ai_stack | **+0.99** | → | 0.83 | 1.00 | +0.83 | 2 |  |
+| 2 | ai_bottlenecks_credit | **-0.54** | → | 0.44 | 1.00 | +0.44 | 6 |  |
+| 3 | options_pricing | **-0.65** | ↓ | 0.93 | 1.00 | +0.93 | 2 |  |
+| 5 | defensives | **+0.33** | ↑ | 1.00 | 1.00 | +1.00 | 1 |  |
 
 Rows with no data yet (sources in later phases): ai_vs_non_ai, tech_competitiveness, value_capture_tax, future_tech, valuations, positioning, capital_flows, calendar, policy, crash_signals, portfolio
 
@@ -49,8 +49,8 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | High-yield crisis | credit | inactive | restricted | 5 | restricted |
 | CCC blowout | credit | inactive | restricted | 15 | restricted |
 | Investment-grade drift | credit | inactive | restricted | 1.1 | restricted |
-| Vol inversion | volatility | inactive | 0.955 | 1 | +0.045 |
-| Bonds stop hedging | rates | inactive | 0.086 | 0.3 | +0.214 |
+| Vol inversion | volatility | inactive | 0.943 | 1 | +0.057 |
+| Bonds stop hedging | rates | inactive | 0.093 | 0.3 | +0.207 |
 | Oil shock | oil | active | 107.030 | 110 | +2.970 |
 | Hike priced | rates | unavailable | - | 0.7 | - |
 | Real yield squeeze | rates | active | 2.660 | 2.5 | -0.160 |
@@ -58,7 +58,7 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | Bear steepener | rates | inactive | - | - | - |
 | Term premium jump | rates | inactive | 0.048 | 0.5 | +0.452 |
 | Capex cut | ai_fundamentals | unavailable | - | 2 | - |
-| Chips lead down | ai_fundamentals | active | -0.163 | -0.15 | -0.013 |
+| Chips lead down | ai_fundamentals | active | -0.145 | -0.15 | +0.005 |
 | Laggards decouple | flows | active | - | - | - |
 | Everything falls | flows | inactive | - | - | - |
 | Liquidity drain | liquidity | inactive | -0.008 | -0.05 | +0.042 |
