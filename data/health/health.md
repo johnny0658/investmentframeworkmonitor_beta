@@ -5,7 +5,7 @@
 - Stale: 1 bank_credit
 - Failing this run: 0 
 - Source alerts (failed 3+ runs in a row): none
-- Values held out of scoring pending confirmation: 1
+- Values held out of scoring pending confirmation: 0
 
 | Indicator | Source | Licence | First | Last | Obs | Age (d) | Stale | Revisions | Held | Fetch |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -48,7 +48,7 @@
 | `ecb_assets` | fred | public | 1999-01-01 | 2026-11-06 | 1454 | 7 |  | 0 |  | ok |
 | `boj_assets` | fred | public | 1998-04-01 | 2026-10-01 | 343 | 43 |  | 0 |  | ok |
 | `usd_broad` | fred | public | 2006-01-02 | 2026-11-06 | 5227 | 7 |  | 0 |  | ok |
-| `brent` | fred | public | 1987-05-20 | 2026-11-11 | 9128 | 2 |  | 0 | 1 | ok |
+| `brent` | fred | public | 1987-05-20 | 2026-11-11 | 9128 | 2 |  | 0 |  | ok |
 | `wti` | fred | public | 1986-01-02 | 2026-11-11 | 9543 | 2 |  | 0 |  | ok |
 | `smh` | prices | restricted | 2000-06-05 | 2026-11-12 | 6651 | 1 |  | 0 |  | ok |
 | `soxx` | prices | restricted | 2001-07-13 | 2026-11-12 | 6372 | 1 |  | 0 |  | ok |
@@ -60,10 +60,10 @@
 | `qqq` | prices | restricted | 1999-03-10 | 2026-11-12 | 6964 | 1 |  | 0 |  | ok |
 | `spy` | prices | restricted | 1993-01-29 | 2026-11-12 | 8506 | 1 |  | 0 |  | ok |
 | `rsp` | prices | restricted | 2003-04-30 | 2026-11-12 | 5924 | 1 |  | 0 |  | ok |
-| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-11 | 789 | 2 |  | 0 |  | ok |
-| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-11 | 789 | 2 |  | 0 |  | ok |
-| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-11 | 789 | 2 |  | 0 |  | ok |
-| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-11 | 788 | 2 |  | 0 |  | ok |
+| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-12 | 790 | 1 |  | 0 |  | ok |
+| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-12 | 790 | 1 |  | 0 |  | ok |
+| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-12 | 790 | 1 |  | 0 |  | ok |
+| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-12 | 789 | 1 |  | 0 |  | ok |
 | `sloos_ci` | fred | public | 1990-04-01 | 2026-10-01 | 147 | 43 |  | 0 |  | ok |
 | `hyg` | prices | restricted | 2007-04-11 | 2026-11-12 | 4931 | 1 |  | 0 |  | ok |
 | `jnk` | prices | restricted | 2007-12-04 | 2026-11-12 | 4766 | 1 |  | 0 |  | ok |
