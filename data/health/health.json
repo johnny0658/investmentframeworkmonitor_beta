@@ -1331,7 +1331,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-14T02:35:28",
+      "last_fetch_at": "2026-11-14T18:41:16",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
@@ -1353,7 +1353,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-14T02:35:28",
+      "last_fetch_at": "2026-11-14T18:41:16",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
@@ -1375,7 +1375,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-14T02:35:29",
+      "last_fetch_at": "2026-11-14T18:41:17",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
@@ -1397,7 +1397,7 @@
       "revisions": 0,
       "held_values": 0,
       "last_fetch_status": "ok",
-      "last_fetch_at": "2026-11-14T02:35:29",
+      "last_fetch_at": "2026-11-14T18:41:17",
       "last_fetch_message": null,
       "consecutive_failures": 0,
       "source_alert": false
