@@ -60,10 +60,10 @@
 | `qqq` | prices | restricted | 1999-03-10 | 2026-11-17 | 6967 | 1 |  | 0 |  | ok |
 | `spy` | prices | restricted | 1993-01-29 | 2026-11-17 | 8509 | 1 |  | 0 |  | ok |
 | `rsp` | prices | restricted | 2003-04-30 | 2026-11-17 | 5927 | 1 |  | 0 |  | ok |
-| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-16 | 793 | 2 |  | 0 |  | ok |
-| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-16 | 793 | 2 |  | 0 |  | ok |
-| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-16 | 793 | 2 |  | 0 |  | ok |
-| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-16 | 792 | 2 |  | 0 |  | ok |
+| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-17 | 794 | 1 |  | 0 |  | ok |
+| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-17 | 794 | 1 |  | 0 |  | ok |
+| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-17 | 794 | 1 |  | 0 |  | ok |
+| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-17 | 793 | 1 |  | 0 |  | ok |
 | `sloos_ci` | fred | public | 1990-04-01 | 2026-10-01 | 147 | 48 |  | 0 |  | ok |
 | `hyg` | prices | restricted | 2007-04-11 | 2026-11-17 | 4934 | 1 |  | 0 |  | ok |
 | `jnk` | prices | restricted | 2007-12-04 | 2026-11-17 | 4769 | 1 |  | 0 |  | ok |
