@@ -32,7 +32,7 @@ My regime probabilities (6 months): goldilocks 25.0%, reflation 25.0%, stagflati
 | 1 | rates_debt | **-0.59** | → | 0.22 | 1.00 | +0.22 | 15 |  |
 | 1 | global_liquidity_inflation | **+0.28** | → | 0.44 | 0.85 | +0.52 | 11 |  |
 | 2 | ai_stack | **+0.91** | → | 0.79 | 1.00 | +0.79 | 2 |  |
-| 2 | ai_bottlenecks_credit | **-0.68** | → | 0.43 | 1.00 | +0.43 | 6 |  |
+| 2 | ai_bottlenecks_credit | **-0.75** | ↓ | 0.42 | 1.00 | +0.42 | 6 |  |
 | 3 | options_pricing | **-1.87** | ↓ | 0.99 | 1.00 | +0.99 | 2 |  |
 | 5 | defensives | **+0.46** | → | 1.00 | 1.00 | +1.00 | 1 |  |
 
