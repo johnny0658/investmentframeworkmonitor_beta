@@ -5,7 +5,7 @@
 - Stale: 4 bank_credit, core_pce, m2, wei
 - Failing this run: 0 
 - Source alerts (failed 3+ runs in a row): none
-- Values held out of scoring pending confirmation: 1
+- Values held out of scoring pending confirmation: 0
 
 | Indicator | Source | Licence | First | Last | Obs | Age (d) | Stale | Revisions | Held | Fetch |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -60,10 +60,10 @@
 | `qqq` | prices | restricted | 1999-03-10 | 2026-11-19 | 6969 | 1 |  | 0 |  | ok |
 | `spy` | prices | restricted | 1993-01-29 | 2026-11-19 | 8511 | 1 |  | 0 |  | ok |
 | `rsp` | prices | restricted | 2003-04-30 | 2026-11-19 | 5929 | 1 |  | 0 |  | ok |
-| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-18 | 795 | 2 |  | 0 |  | ok |
-| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-18 | 795 | 2 |  | 0 |  | ok |
-| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-18 | 795 | 2 |  | 0 |  | ok |
-| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-18 | 794 | 2 |  | 0 |  | ok |
+| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-19 | 796 | 1 |  | 0 |  | ok |
+| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-19 | 796 | 1 |  | 0 |  | ok |
+| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-19 | 796 | 1 |  | 0 |  | ok |
+| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-19 | 795 | 1 |  | 0 |  | ok |
 | `sloos_ci` | fred | public | 1990-04-01 | 2026-10-01 | 147 | 50 |  | 0 |  | ok |
 | `hyg` | prices | restricted | 2007-04-11 | 2026-11-19 | 4936 | 1 |  | 0 |  | ok |
 | `jnk` | prices | restricted | 2007-12-04 | 2026-11-19 | 4771 | 1 |  | 0 |  | ok |
@@ -79,7 +79,7 @@
 | `kweb` | prices | restricted | 2013-08-01 | 2026-11-19 | 3347 | 1 |  | 0 |  | ok |
 | `tchi` | prices | restricted | 2022-02-01 | 2026-11-19 | 1206 | 1 |  | 0 |  | ok |
 | `ewy` | prices | restricted | 2000-05-12 | 2026-11-19 | 6671 | 1 |  | 0 |  | ok |
-| `ewt` | prices | restricted | 2000-06-23 | 2026-11-19 | 6642 | 1 |  | 120 | 1 | ok |
+| `ewt` | prices | restricted | 2000-06-23 | 2026-11-19 | 6642 | 1 |  | 120 |  | ok |
 | `ewj` | prices | restricted | 1996-04-01 | 2026-11-19 | 7710 | 1 |  | 124 |  | ok |
 | `ezu` | prices | restricted | 2001-01-02 | 2026-11-19 | 6510 | 1 |  | 124 |  | ok |
 | `gld` | prices | restricted | 2004-11-18 | 2026-11-19 | 5536 | 1 |  | 126 |  | ok |
