@@ -1,4 +1,4 @@
-# Framework monitor, as of 2026-11-20
+# Framework monitor, as of 2026-11-24
 
 > Not investment advice. Priors and likelihood ratios are still the PRD placeholders; indicator weights and directions are first-pass defaults.
 
@@ -6,11 +6,11 @@
 
 | Scenario | Now | 1 week ago | 4 weeks ago | Confirmed prior | LR multiplier |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| base: Base | **11.8%** | 34.1% | 22.3% | 45.0% | 0.23 |
-| A: Orderly AI de-rating | **63.0%** | 32.9% | 21.8% | 25.0% | 8.32 |
-| B: AI capex bust | **10.8%** | 12.5% | 6.9% | 12.0% | 2.50 |
-| C: AI credit event | **6.6%** | 9.4% | 7.5% | 8.0% | 2.24 |
-| D: Stagflation | **7.8%** | 11.1% | 41.5% | 10.0% | 2.08 |
+| base: Base | **11.8%** | 24.7% | 27.6% | 45.0% | 0.23 |
+| A: Orderly AI de-rating | **63.0%** | 49.3% | 25.7% | 25.0% | 8.32 |
+| B: AI capex bust | **10.8%** | 10.4% | 10.8% | 12.0% | 2.50 |
+| C: AI credit event | **6.6%** | 4.7% | 8.8% | 8.0% | 2.24 |
+| D: Stagflation | **7.8%** | 10.9% | 27.2% | 10.0% | 2.08 |
 
 ## Regime
 
@@ -30,13 +30,13 @@ My regime probabilities (6 months): goldilocks 25.0%, reflation 25.0%, stagflati
 
 | Layer | Row | Score | vs 1w | Confidence | Fresh | Agree | Signals | Override |
 | --- | --- | ---: | :---: | ---: | ---: | ---: | ---: | --- |
-| 1 | us_liquidity | **+0.38** | → | 0.72 | 0.90 | +0.80 | 9 |  |
-| 1 | rates_debt | **-0.51** | → | 0.19 | 1.00 | +0.19 | 15 |  |
-| 1 | global_liquidity_inflation | **+0.25** | → | 0.37 | 0.70 | +0.53 | 11 |  |
-| 2 | ai_stack | **+0.46** | ↓ | 0.68 | 1.00 | +0.68 | 2 |  |
-| 2 | ai_bottlenecks_credit | **-0.84** | ↓ | 0.44 | 1.00 | +0.44 | 6 |  |
+| 1 | us_liquidity | **+0.38** | → | 0.60 | 0.75 | +0.80 | 9 |  |
+| 1 | rates_debt | **-0.45** | → | 0.19 | 1.00 | +0.19 | 15 |  |
+| 1 | global_liquidity_inflation | **+0.24** | → | 0.37 | 0.70 | +0.53 | 11 |  |
+| 2 | ai_stack | **+0.38** | ↓ | 0.61 | 1.00 | +0.61 | 2 |  |
+| 2 | ai_bottlenecks_credit | **-1.15** | ↓ | 0.37 | 1.00 | +0.37 | 6 |  |
 | 3 | options_pricing | **-2.00** | ↓ | 1.00 | 1.00 | +1.00 | 2 |  |
-| 5 | defensives | **+1.07** | ↑ | 1.00 | 1.00 | +1.00 | 1 |  |
+| 5 | defensives | **+1.15** | ↑ | 1.00 | 1.00 | +1.00 | 1 |  |
 
 Rows with no data yet (sources in later phases): ai_vs_non_ai, tech_competitiveness, value_capture_tax, future_tech, valuations, positioning, capital_flows, calendar, policy, crash_signals, portfolio
 
@@ -50,12 +50,12 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | High-yield crisis | credit | inactive | restricted | 5 | restricted |
 | CCC blowout | credit | inactive | restricted | 15 | restricted |
 | Investment-grade drift | credit | inactive | restricted | 1.1 | restricted |
-| Vol inversion | volatility | active | 1.052 | 1 | -0.052 |
-| Bonds stop hedging | rates | inactive | -0.057 | 0.3 | +0.357 |
+| Vol inversion | volatility | active | 1.160 | 1 | -0.160 |
+| Bonds stop hedging | rates | inactive | -0.075 | 0.3 | +0.375 |
 | Oil shock | oil | inactive | 92.940 | 110 | +17.060 |
 | Hike priced | rates | unavailable | - | 0.7 | - |
-| Real yield squeeze | rates | active | 2.880 | 2.5 | -0.380 |
-| Long-end break | rates | active | 5.040 | 5 | -0.040 |
+| Real yield squeeze | rates | active | 2.770 | 2.5 | -0.270 |
+| Long-end break | rates | active | 4.920 | 5 | +0.080 |
 | Bear steepener | rates | inactive | - | - | - |
 | Term premium jump | rates | inactive | 0.163 | 0.5 | +0.337 |
 | Capex cut | ai_fundamentals | unavailable | - | 2 | - |
