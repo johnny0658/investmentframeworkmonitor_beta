@@ -5,7 +5,7 @@
 - Stale: 4 bank_credit, core_pce, m2, wei
 - Failing this run: 0 
 - Source alerts (failed 3+ runs in a row): none
-- Values held out of scoring pending confirmation: 12
+- Values held out of scoring pending confirmation: 0
 
 | Indicator | Source | Licence | First | Last | Obs | Age (d) | Stale | Revisions | Held | Fetch |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- |
@@ -50,27 +50,27 @@
 | `usd_broad` | fred | public | 2006-01-02 | 2026-11-20 | 5236 | 4 |  | 0 |  | ok |
 | `brent` | fred | public | 1987-05-20 | 2026-11-17 | 9132 | 7 |  | 0 |  | ok |
 | `wti` | fred | public | 1986-01-02 | 2026-11-17 | 9547 | 7 |  | 0 |  | ok |
-| `smh` | prices | restricted | 2000-06-05 | 2026-11-23 | 6658 | 1 |  | 0 | 1 | ok |
-| `soxx` | prices | restricted | 2001-07-13 | 2026-11-23 | 6379 | 1 |  | 0 | 1 | ok |
-| `nvda` | prices | restricted | 1999-01-22 | 2026-11-23 | 7003 | 1 |  | 0 | 1 | ok |
+| `smh` | prices | restricted | 2000-06-05 | 2026-11-23 | 6658 | 1 |  | 0 |  | ok |
+| `soxx` | prices | restricted | 2001-07-13 | 2026-11-23 | 6379 | 1 |  | 0 |  | ok |
+| `nvda` | prices | restricted | 1999-01-22 | 2026-11-23 | 7003 | 1 |  | 0 |  | ok |
 | `vrt` | prices | restricted | 2018-07-30 | 2026-11-23 | 2092 | 1 |  | 0 |  | ok |
 | `ceg` | prices | restricted | 2022-02-02 | 2026-11-23 | 1207 | 1 |  | 0 |  | ok |
-| `grid` | prices | restricted | 2009-11-17 | 2026-11-23 | 4280 | 1 |  | 0 | 1 | ok |
+| `grid` | prices | restricted | 2009-11-17 | 2026-11-23 | 4280 | 1 |  | 0 |  | ok |
 | `igv` | prices | restricted | 2001-07-13 | 2026-11-23 | 6379 | 1 |  | 0 |  | ok |
-| `qqq` | prices | restricted | 1999-03-10 | 2026-11-23 | 6971 | 1 |  | 0 | 1 | ok |
-| `spy` | prices | restricted | 1993-01-29 | 2026-11-23 | 8513 | 1 |  | 0 | 1 | ok |
+| `qqq` | prices | restricted | 1999-03-10 | 2026-11-23 | 6971 | 1 |  | 0 |  | ok |
+| `spy` | prices | restricted | 1993-01-29 | 2026-11-23 | 8513 | 1 |  | 0 |  | ok |
 | `rsp` | prices | restricted | 2003-04-30 | 2026-11-23 | 5931 | 1 |  | 0 |  | ok |
-| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-20 | 797 | 4 |  | 0 |  | ok |
-| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-20 | 797 | 4 |  | 0 |  | ok |
-| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-20 | 797 | 4 |  | 0 |  | ok |
-| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-20 | 796 | 4 |  | 0 |  | ok |
+| `hy_oas` | fred | restricted | 2023-11-07 | 2026-11-23 | 798 | 1 |  | 0 |  | ok |
+| `ccc_oas` | fred | restricted | 2023-11-07 | 2026-11-23 | 798 | 1 |  | 0 |  | ok |
+| `bbb_oas` | fred | restricted | 2023-11-07 | 2026-11-23 | 798 | 1 |  | 0 |  | ok |
+| `ig_oas` | fred | restricted | 2023-11-07 | 2026-11-23 | 797 | 1 |  | 0 |  | ok |
 | `sloos_ci` | fred | public | 1990-04-01 | 2026-10-01 | 147 | 54 |  | 0 |  | ok |
 | `hyg` | prices | restricted | 2007-04-11 | 2026-11-23 | 4938 | 1 |  | 0 |  | ok |
 | `jnk` | prices | restricted | 2007-12-04 | 2026-11-23 | 4773 | 1 |  | 0 |  | ok |
 | `lqd` | prices | restricted | 2002-07-26 | 2026-11-23 | 6122 | 1 |  | 0 |  | ok |
 | `bkln` | prices | restricted | 2011-03-03 | 2026-11-23 | 3956 | 1 |  | 0 |  | ok |
 | `crwv` | prices | restricted | 2025-03-28 | 2026-11-23 | 417 | 1 |  | 0 |  | ok |
-| `orcl` | prices | restricted | 1990-01-02 | 2026-11-23 | 9292 | 1 |  | 0 | 1 | ok |
+| `orcl` | prices | restricted | 1990-01-02 | 2026-11-23 | 9292 | 1 |  | 0 |  | ok |
 | `vix` | fred | restricted | 1990-01-02 | 2026-11-20 | 9322 | 4 |  | 0 |  | ok |
 | `vix3m` | fred | restricted | 2007-12-04 | 2026-11-20 | 4772 | 4 |  | 0 |  | ok |
 | `inda` | prices | restricted | 2012-02-03 | 2026-11-23 | 3723 | 1 |  | 0 |  | ok |
@@ -78,14 +78,14 @@
 | `hsi` | prices | restricted | 1990-01-02 | 2026-11-24 | 9106 | 0 |  | 8 |  | ok |
 | `kweb` | prices | restricted | 2013-08-01 | 2026-11-23 | 3349 | 1 |  | 0 |  | ok |
 | `tchi` | prices | restricted | 2022-02-01 | 2026-11-23 | 1208 | 1 |  | 0 |  | ok |
-| `ewy` | prices | restricted | 2000-05-12 | 2026-11-23 | 6673 | 1 |  | 0 | 1 | ok |
-| `ewt` | prices | restricted | 2000-06-23 | 2026-11-23 | 6644 | 1 |  | 120 | 1 | ok |
-| `ewj` | prices | restricted | 1996-04-01 | 2026-11-23 | 7712 | 1 |  | 124 | 1 | ok |
+| `ewy` | prices | restricted | 2000-05-12 | 2026-11-23 | 6673 | 1 |  | 0 |  | ok |
+| `ewt` | prices | restricted | 2000-06-23 | 2026-11-23 | 6644 | 1 |  | 120 |  | ok |
+| `ewj` | prices | restricted | 1996-04-01 | 2026-11-23 | 7712 | 1 |  | 124 |  | ok |
 | `ezu` | prices | restricted | 2001-01-02 | 2026-11-23 | 6512 | 1 |  | 124 |  | ok |
 | `gld` | prices | restricted | 2004-11-18 | 2026-11-23 | 5538 | 1 |  | 126 |  | ok |
 | `tlt` | prices | restricted | 2002-07-26 | 2026-11-23 | 6122 | 1 |  | 124 |  | ok |
 | `xlp` | prices | restricted | 1998-12-22 | 2026-11-23 | 7023 | 1 |  | 124 |  | ok |
 | `xlu` | prices | restricted | 1998-12-22 | 2026-11-23 | 7023 | 1 |  | 124 |  | ok |
 | `iwd` | prices | restricted | 2000-05-26 | 2026-11-23 | 6663 | 1 |  | 126 |  | ok |
-| `iwf` | prices | restricted | 2000-05-26 | 2026-11-23 | 6663 | 1 |  | 126 | 1 | ok |
-| `qual` | prices | restricted | 2013-07-18 | 2026-11-23 | 3359 | 1 |  | 126 | 1 | ok |
+| `iwf` | prices | restricted | 2000-05-26 | 2026-11-23 | 6663 | 1 |  | 126 |  | ok |
+| `qual` | prices | restricted | 2013-07-18 | 2026-11-23 | 3359 | 1 |  | 126 |  | ok |
