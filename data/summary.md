@@ -33,8 +33,8 @@ My regime probabilities (6 months): goldilocks 25.0%, reflation 25.0%, stagflati
 | 1 | us_liquidity | **+0.38** | → | 0.68 | 0.85 | +0.80 | 9 |  |
 | 1 | rates_debt | **-0.44** | → | 0.22 | 1.00 | +0.22 | 15 |  |
 | 1 | global_liquidity_inflation | **+0.21** | → | 0.46 | 0.85 | +0.54 | 11 |  |
-| 2 | ai_stack | **+0.72** | → | 0.64 | 1.00 | +0.64 | 2 |  |
-| 2 | ai_bottlenecks_credit | **-1.03** | ↓ | 0.40 | 1.00 | +0.40 | 6 |  |
+| 2 | ai_stack | **+0.59** | ↓ | 0.69 | 1.00 | +0.69 | 2 |  |
+| 2 | ai_bottlenecks_credit | **-1.16** | ↓ | 0.37 | 1.00 | +0.37 | 6 |  |
 | 3 | options_pricing | **-2.00** | ↓ | 1.00 | 1.00 | +1.00 | 2 |  |
 | 5 | defensives | **+0.88** | ↑ | 1.00 | 1.00 | +1.00 | 1 |  |
 
@@ -59,7 +59,7 @@ Distance = how far the value must still move to trigger (negative = past the thr
 | Bear steepener | rates | inactive | - | - | - |
 | Term premium jump | rates | inactive | 0.041 | 0.5 | +0.459 |
 | Capex cut | ai_fundamentals | unavailable | - | 2 | - |
-| Chips lead down | ai_fundamentals | active | -0.120 | -0.15 | +0.030 |
+| Chips lead down | ai_fundamentals | active | -0.184 | -0.15 | -0.034 |
 | Laggards decouple | flows | active | - | - | - |
 | Everything falls | flows | inactive | - | - | - |
 | Liquidity drain | liquidity | inactive | 0.006 | -0.05 | +0.056 |
